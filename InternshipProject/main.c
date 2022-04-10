@@ -252,9 +252,8 @@ __interrupt void T4A0_ISR(void)
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void T0B0_ISR(void)
 {
-    //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
     GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
-    __delay_cycles(100000);
+    //__delay_cycles(100000);
     printf("PULSES SEND --> %d\n", sendPulses);
     sendPulses++;
 
@@ -266,6 +265,7 @@ __interrupt void T0B0_ISR(void)
         sendPulses = 0;
         printf("Fine invio burst\n");
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
         nodeStatus = BURST_WAIT;
         //printf("END PULSES SEND\n");
     }
