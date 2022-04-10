@@ -11,13 +11,13 @@
 
 void initBoard()
 {
-   /* MPUCTL0 = MPUPW;
-    MPUSEGB2 = 0x1000; // memory address 0x10000
-    MPUSEGB1 = 0x0fc0; // memory address 0x0fc00
-    MPUSAM &= ~MPUSEG2WE; // disallow writes
-    MPUSAM |= MPUSEG2VS;  // reset CPU on violation
-    MPUCTL0 = MPUPW | MPUENA;
-    MPUCTL0_H = 0;*/
+    /* MPUCTL0 = MPUPW;
+     MPUSEGB2 = 0x1000; // memory address 0x10000
+     MPUSEGB1 = 0x0fc0; // memory address 0x0fc00
+     MPUSAM &= ~MPUSEG2WE; // disallow writes
+     MPUSAM |= MPUSEG2VS;  // reset CPU on violation
+     MPUCTL0 = MPUPW | MPUENA;
+     MPUCTL0_H = 0;*/
 
     WDTCTL = WDTPW | WDTHOLD;
     PM5CTL0 &= ~LOCKLPM5; // Disable the GPIO power-on default high-impedance mode
@@ -34,29 +34,29 @@ void setTimers()
     TA0CCR0 = 0; // set interupt value
     TA0CCTL0 &= 0x10; // set compare mode
 
-    /*//Timer A1_0
+    //Timer A1_0
      TA1CCTL0 = CCIE; // enable capture control interupt
      TA1CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
      TA1CCR0 = 0; // set interupt value
      TA1CCTL0 &= 0x10; // set compare mode
-
+/*
      //Timer A2_0
      TA2CCTL0 = CCIE; // enable capture control interupt
      TA2CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
      TA2CCR0 = 0; // set interupt value
      TA2CCTL0 &= 0x10; // set compare mode
-*/
-     //Timer A4_0 ---- BURST REPETITION
-     TA4CCTL0 = CCIE; // enable capture control interupt
-     TA4CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider
-     TA4CCR0 = 0; // set interupt value
-     TA4CCTL0 &= 0x10; // set compare mode
+     */
+    //Timer A4_0 ---- BURST REPETITION
+    TA4CCTL0 = CCIE; // enable capture control interupt
+    TA4CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider
+    TA4CCR0 = 0; // set interupt value
+    TA4CCTL0 &= 0x10; // set compare mode
 
-     //Timer B0_0 ---- PULSES SEND
-     TB0CCTL0 = CCIE; // enable capture control interupt
-     TB0CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
-     TB0CCR0 = 0; // set interupt value
-     TB0CCTL0 &= 0x10; // set compare mode
+    //Timer B0_0 ---- PULSES SEND
+    TB0CCTL0 = CCIE; // enable capture control interupt
+    TB0CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
+    TB0CCR0 = 0; // set interupt value
+    TB0CCTL0 &= 0x10; // set compare mode
 }
 
 void setBoardFrequency()
@@ -86,18 +86,16 @@ void setBoardFrequency()
 void pinDeclaration()
 {
 
-    /*GPIO_setAsInputPin(GPIO_PORT_P3, GPIO_PIN0); //Pin Data receive
-    P3IE |= BIT0; // P3.0 interrupt enabled
-    P3IES |= BIT0; // P3.0 Hi/lo edge
-    P3IFG &= ~BIT0; // P3.0 IFG cleared
-
-    GPIO_setAsInputPin(GPIO_PORT_P3, GPIO_PIN1); //Pin Burst receive
-    P3IE |= BIT1;
-    P3IES |= BIT1;
-    P3IFG &= ~BIT1;*/
+    GPIO_setAsInputPin(GPIO_PORT_P3, GPIO_PIN0 | GPIO_PIN1);
+    //P3REN = (BIT5 | BIT6);    // resistor enable
+    P3IES = (BIT0 | BIT1);  // set interrupt on edge select
+    P3IFG = 0;              // clear interrupt flags
+    P3IE = (BIT0 | BIT1);  // set interupt enable on pins
 
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin notify Data send
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
 }

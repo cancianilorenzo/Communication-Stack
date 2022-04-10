@@ -76,23 +76,23 @@ int main(void)
     setTimers();
     printf("End init\n");
 
-
     pinDeclaration();
 
     nodeState[0] = 100;
 
-    energy_count_limit = (ENERGY_CHANGE / 2) + (rand() % (ENERGY_CHANGE / 2 + 1));
+    energy_count_limit = (ENERGY_CHANGE / 2)
+            + (rand() % (ENERGY_CHANGE / 2 + 1));
     energy_increment = rand() % (ENERGY_INCREMENT + 1);
 
     //start energy timer A0
     TA0CCR0 = 0;
-    TA0CCR0 = (62.5*0.5);
+    TA0CCR0 = (62.5 * 0.5);
 
     //start burst timer A4
     TA4CCR0 = 0; //Reset timer, can be removed
     TA4CCR0 = 62.5;
 
-   while (1)
+    while (1)
     {
         //select burst
         nodeState[0] = selectBurstLength(energyLevel);
@@ -105,6 +105,9 @@ int main(void)
             energy_count = 0;
         }
 
+        nodeState[1] = MIDDLE_BURST;
+        nodeState[2] = MIDDLE_BURST;
+
         if (nodeStatus != BURST_RX)
         {
             //Custom priority switched with a true/false random condition (0/1)
@@ -115,26 +118,29 @@ int main(void)
                         && ACTUAL_NODE == 0)
                 {
                     //Send data from 0 to 1
+                    printf("[DATA] From 0 to 1\n");
                     nodeState[1] = 0;
                     dataSend();
-                    break;
+
                 }
-                if (nodeState[2] == LONG_BURST && nodeState[0] == MIDDLE_BURST
+                /*if (nodeState[2] == LONG_BURST && nodeState[0] == MIDDLE_BURST
                         && ACTUAL_NODE == 2)
                 {
                     //Send data from 2 to 0
+                    printf("[DATA] From 2 to 0\n");
                     nodeState[0] = 0;
                     dataSend();
-                    break;
+
                 }
                 if (nodeState[1] == LONG_BURST && nodeState[2] == MIDDLE_BURST
                         && ACTUAL_NODE == 1)
                 {
                     //Send data from 1 to 2
+                    printf("[DATA] From 1 to 2\n");
                     nodeState[2] = 0;
                     dataSend();
-                    break;
-                }
+
+                }*/
 
             }
             else
@@ -143,26 +149,29 @@ int main(void)
                         && ACTUAL_NODE == 0)
                 {
                     //Send data from 0 to 2
+                    printf("[DATA] From 0 to 2\n");
                     nodeState[2] = 0;
                     dataSend();
-                    break;
+
                 }
-                if (nodeState[1] == LONG_BURST && nodeState[0] == MIDDLE_BURST
+               /* if (nodeState[1] == LONG_BURST && nodeState[0] == MIDDLE_BURST
                         && ACTUAL_NODE == 1)
                 {
                     //Send data from 1 to 0
+                    printf("[DATA] From 1 to 0\n");
                     nodeState[0] = 0;
                     dataSend();
-                    break;
+
                 }
                 if (nodeState[2] == LONG_BURST && nodeState[1] == MIDDLE_BURST
                         && ACTUAL_NODE == 2)
                 {
                     //Send data from 2 to 1
+                    printf("[DATA] From 2 to 1\n");
                     nodeState[1] = 0;
                     dataSend();
-                    break;
-                }
+
+                }*/
 
             }
         }
@@ -175,6 +184,7 @@ void dataSend()
 {
     TA1CCR0 = 0; //Stop timer A1
     TA1CCR0 = 40000; //Start timer A1
+
     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
     energyLevel = energyLevel - ENERGY_CONSUMED_TX;
     dataStatus = DATA_TX;
@@ -202,40 +212,42 @@ __interrupt void T0A0_ISR(void)
         energy_count++;
 
         energy_step = 120 + energy_step;
-        printf("[UPDATE] EnergyLevel --> %d\n", energyLevel);
+        //printf("[UPDATE] EnergyLevel --> %d\n", energyLevel);
 
     }
 }
 
-/*#pragma vector = TIMER1_A0_VECTOR
+#pragma vector = TIMER1_A0_VECTOR
 __interrupt void T1A0_ISR(void)
 {
     //Timer ausiliario
     //Reached timeout for burst reception (no more pulse on the pin)
-    if (nodeStatus == BURST_RX)
+    /*if (nodeStatus == BURST_RX)
     {
         //Fermo timer T2A0, ne leggo il valore, divido per capire che nodo è, assegno al nodo i burst rettificati
         nodeStatus = BURST_WAIT;
         TA1CCR0 = 0; //Stop timer A1
-    }
+    }*/
     if (dataStatus == DATA_TX)
     {
         dataStatus = DATA_WAIT;
         TA1CCR0 = 0; //Stop timer A1
+        energyLevel = 0;
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
     }
+
     if (dataStatus == DATA_RX)
     {
         dataStatus = DATA_WAIT;
     }
 }
-
-#pragma vector = TIMER2_A0_VECTOR
-__interrupt void T2A0_ISR(void)
-{
-    //timer per il calcolo della frequenza di ricezione ----- TODO
-}
-*/
+/*
+ #pragma vector = TIMER2_A0_VECTOR
+ __interrupt void T2A0_ISR(void)
+ {
+ //timer per il calcolo della frequenza di ricezione ----- TODO
+ }
+ */
 //Timer BURST REPETITION
 #pragma vector = TIMER4_A0_VECTOR
 __interrupt void T4A0_ISR(void)
@@ -243,8 +255,8 @@ __interrupt void T4A0_ISR(void)
     TB0CCR0 = 0; //Stop timer B0
     sendPulses = 0;
     nodeStatus = BURST_TX;
-    printf("SendBurst\n");
-    printf("[BURST] EnergyLevel --> %d\n", energyLevel);
+    //printf("SendBurst\n");
+    //printf("[BURST] EnergyLevel --> %d\n", energyLevel);
     TB0CCR0 = (2000 / OOK_NODE0);
     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
 }
@@ -254,16 +266,15 @@ __interrupt void T0B0_ISR(void)
 {
     GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
     //__delay_cycles(100000);
-    printf("PULSES SEND --> %d\n", sendPulses);
+    //printf("PULSES SEND --> %d\n", sendPulses);
     sendPulses++;
-
 
     if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
     {
 
         TB0CCR0 = 0; //Stop timer
         sendPulses = 0;
-        printf("Fine invio burst\n");
+        //printf("Fine invio burst\n");
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
         nodeStatus = BURST_WAIT;
@@ -271,42 +282,34 @@ __interrupt void T0B0_ISR(void)
     }
 }
 
-/*Altro handler, probabilmente quello dell'invio data dataSend()
+//Handler BURST_RX pin 1.2
+/*#pragma vector = PORT3_VECTOR
+ __interrupt void P3_ISR(void)
+ {
 
- if(energyLevel >= ENERGY_CONSUMED_RX){
+ if (P3IFG & BIT1)
+ {
+ //GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+
+ if (energyLevel == MAX_ENERGY && nodeStatus != BURST_TX
+ && dataStatus == DATA_WAIT) printf("BURST_RX\n");
+ {
+ nodeStatus = BURST_RX;
+ if (count == 0)
+ {
  TA1CCR0 = 0; //Stop timer A1
- TA1CCR0 = (2000/;
+ TA1CCR0 = (2000 / TIMEOUT);
+ }
+ TA1CCR0 = 0; //Stop timer A1
+ TA1CCR0 = (2000 / TIMEOUT);
+ count++;
+
  }
 
- */
+ //Clear interrupt flag
+ P1IFG &= ~BIT1;
 
-//Handler BURST_RX pin 1.2
-/*#pragma vector = PORT1_VECTOR
-__interrupt void P1_ISR(void)
-{
+ }
 
-    if (P1IFG & BIT2)
-    {
-
-        if (energyLevel == MAX_ENERGY && nodeStatus != BURST_TX
-                && dataStatus == DATA_WAIT)
-        {
-            nodeStatus = BURST_RX;
-            if (count == 0)
-            {
-                TA1CCR0 = 0; //Stop timer A1
-                TA1CCR0 = (2000 / TIMEOUT);
-            }
-            TA1CCR0 = 0; //Stop timer A1
-            TA1CCR0 = (2000 / TIMEOUT);
-            count++;
-
-        }
-
-        //Clear interrupt flag
-        P1IFG &= ~BIT2;
-
-    }
-
-}*/
+ }*/
 
