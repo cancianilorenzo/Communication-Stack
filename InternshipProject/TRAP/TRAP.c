@@ -8,24 +8,26 @@
 
 #define MAX_ENERGY 100
 #define MIDDLE_ENERGY 70
-#define LOW_ENERGY 50
+#define LOW_ENERGY 35
 #define LONG_BURST 256
 #define MIDDLE_BURST 128
 #define SHORT_BURST 64
 
 int selectBurstLength(int energyLevel)
 {
+    int burst = -1;
+
     if (energyLevel == MAX_ENERGY)
     {
-        return LONG_BURST;
+        burst = LONG_BURST;
     }
-    else if (energyLevel >= MIDDLE_ENERGY)
+    else if (energyLevel > MIDDLE_ENERGY || energyLevel == MIDDLE_ENERGY)
     {
-        return MIDDLE_BURST;
+        burst = MIDDLE_BURST;
     }
-    else if (energyLevel <= LOW_ENERGY)
+    else if (energyLevel < MIDDLE_ENERGY)
     {
-        return SHORT_BURST;
+        burst = SHORT_BURST;
     }
-    return -1;
+    return burst;
 }

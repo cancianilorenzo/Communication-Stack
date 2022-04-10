@@ -22,9 +22,10 @@
 
 #define MAX_ENERGY 100
 #define MIDDLE_ENERGY 70
-#define LOW_ENERGY 50
+#define LOW_ENERGY 35
 
 #define ENERGY_UPDATE 500 //500ms energy update
+#define BURST_REPETITION 1000 //Repetition of burst in ms
 
 #define ENERGY_CONSUMED_TX 70 //Energy consumed in TX
 #define ENERGY_CONSUMED_RX 35 //Energy consumed in TX
@@ -77,30 +78,31 @@ int main(void)
 
     pinDeclaration();
 
-    PM5CTL0 &= ~LOCKLPM5; // Disable the GPIO power-on default high-impedance mode
-
     nodeState[0] = 100;
 
-    energy_count_limit = (ENERGY_CHANGE / 2)
-            + (rand() % (ENERGY_CHANGE / 2 + 1));
+    energy_count_limit = (ENERGY_CHANGE / 2) + (rand() % (ENERGY_CHANGE / 2 + 1));
     energy_increment = rand() % (ENERGY_INCREMENT + 1);
 
     //start energy timer A0
-    //TA0CCR0 = 0;
-    TA0CCR0 = 10000;/*(2000 / ENERGY_UPDATE);*/ //(Timer period/aspected time)
+    TA0CCR0 = 0;
+    TA0CCR0 = (62.5 * ENERGY_UPDATE);
 
-    //while(1);
+    TA4CCR0 = 0; //Reset timer, can be removed
+    TA4CCR0 = (62.5 * BURST_REPETITION);
+
 
     //Start timer burst TODO
    while (1)
     {
         //select burst
         nodeState[0] = selectBurstLength(energyLevel);
-        if (nodeState[0] < 0)
+        /*if (nodeState[0] < 0)
         {
             printf("[ERR]: burstLength Error\n");
             return 0;
-        }
+        }*/
+        //printf("BurstLength --> %d\n", nodeState[0]);
+        __delay_cycles(1000);
         //---------------------------- TODO EDIT FUNCTION --------------------------------
         if (energy_count >= energy_count_limit)
         {
@@ -194,11 +196,11 @@ void dataSend()
 #pragma vector = TIMER0_A0_VECTOR
 __interrupt void T0A0_ISR(void)
 {
-    GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+    //GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+    //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
 
 //Alessandro's timer 3
-    /*if (dataStatus == DATA_WAIT)
+    if (dataStatus == DATA_WAIT)
     {
         int energy_step = rand() % (energy_increment + 1);
         energyLevel = energyLevel + energy_step;
@@ -207,9 +209,10 @@ __interrupt void T0A0_ISR(void)
         energy_count++;
 
         energy_step = 120 + energy_step;
+        printf("[UPDATE] EnergyLevel --> %d\n", energyLevel);
 
     }
-    TA0CTL &= ~MC; // stop timer*/
+    //TA0CTL &= ~MC; // stop timer
 }
 
 /*#pragma vector = TIMER1_A0_VECTOR
@@ -240,13 +243,16 @@ __interrupt void T2A0_ISR(void)
 {
     //timer per il calcolo della frequenza di ricezione ----- TODO
 }
-
+*/
+//Timer BURST REPETITION
 #pragma vector = TIMER4_A0_VECTOR
 __interrupt void T4A0_ISR(void)
 {
     TB0CCR0 = 0; //Stop timer B0
     sendPulses = 0;
     nodeStatus = BURST_TX;
+    printf("SendBurst\n");
+    printf("[BURST] EnergyLevel --> %d\n", energyLevel);
     TB0CCR0 = (2000 / OOK_NODE0);
     //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
 }
@@ -255,6 +261,7 @@ __interrupt void T4A0_ISR(void)
 __interrupt void T0B0_ISR(void)
 {
     sendPulses++;
+    //printf("PULSES SEND --> %d\n", sendPulses);
 
     if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
     {
@@ -263,6 +270,7 @@ __interrupt void T0B0_ISR(void)
         sendPulses = 0;
         //GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
         nodeStatus = BURST_WAIT;
+        //printf("END PULSES SEND\n");
     }
 }
 

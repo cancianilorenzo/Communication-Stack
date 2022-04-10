@@ -20,42 +20,43 @@ void initBoard()
     MPUCTL0_H = 0;*/
 
     WDTCTL = WDTPW | WDTHOLD;
-    //PM5CTL0 &= ~LOCKLPM5; // Disable the GPIO power-on default high-impedance mode
+    PM5CTL0 &= ~LOCKLPM5; // Disable the GPIO power-on default high-impedance mode
     __enable_interrupt(); // enable global interrupts
 
 }
 
 void setTimers()
 {
-    //Timer A0_1
+    //Timer A0_0
     TA0CCTL0 = CCIE; // enable capture control interupt
-    TA0CTL = TASSEL_1 + MC_1 + ID_0;  // Use SMCLK in up mode, /8 divider
+    //Set timer speed at 62.5 kHz, min speed for CLK at 16 MHz
+    TA0CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider
     TA0CCR0 = 0; // set interupt value
     TA0CCTL0 &= 0x10; // set compare mode
 
-    /*//Timer A1_1
+    /*//Timer A1_0
      TA1CCTL0 = CCIE; // enable capture control interupt
      TA1CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
      TA1CCR0 = 0; // set interupt value
      TA1CCTL0 &= 0x10; // set compare mode
 
-     //Timer A2_1
+     //Timer A2_0
      TA2CCTL0 = CCIE; // enable capture control interupt
      TA2CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
      TA2CCR0 = 0; // set interupt value
      TA2CCTL0 &= 0x10; // set compare mode
-
-     //Timer A4_1
+*/
+     //Timer A4_0
      TA4CCTL0 = CCIE; // enable capture control interupt
-     TA4CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
+     TA4CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider
      TA4CCR0 = 0; // set interupt value
      TA4CCTL0 &= 0x10; // set compare mode
 
-     //Timer B0_1
+     //Timer B0_0
      TB0CCTL0 = CCIE; // enable capture control interupt
      TB0CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
      TB0CCR0 = 0; // set interupt value
-     TB0CCTL0 &= 0x10; // set compare mode*/
+     TB0CCTL0 &= 0x10; // set compare mode
 }
 
 void setBoardFrequency()
@@ -85,17 +86,15 @@ void setBoardFrequency()
 void pinDeclaration()
 {
 
-    GPIO_setAsInputPin(GPIO_PORT_P3, GPIO_PIN0); //Pin Data receive
-    //P3IE |= BIT0; // P5.1 interrupt enabled
-    //P3IES |= BIT0; // P5.1 Hi/lo edge
-    //P3IFG &= ~BIT0; // P5.1 IFG cleared
+    /*GPIO_setAsInputPin(GPIO_PORT_P3, GPIO_PIN0); //Pin Data receive
+    P3IE |= BIT0; // P3.0 interrupt enabled
+    P3IES |= BIT0; // P3.0 Hi/lo edge
+    P3IFG &= ~BIT0; // P3.0 IFG cleared
 
     GPIO_setAsInputPin(GPIO_PORT_P3, GPIO_PIN1); //Pin Burst receive
-    //P3IE |= BIT1;
-    //P3IES |= BIT1;
-    //P3IFG &= ~BIT1;
-
-   // P3IE |= (BIT0 + BIT1);
+    P3IE |= BIT1;
+    P3IES |= BIT1;
+    P3IFG &= ~BIT1;*/
 
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin Data send
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin Burst send
