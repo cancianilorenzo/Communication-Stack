@@ -71,9 +71,10 @@ int main(void)
 {
     initBoard();
     //__delay_cycles(60);
-    //setBoardFrequency();
-    //__delay_cycles(60);
+    setBoardFrequency();
+    __delay_cycles(60);
     setTimers();
+    printf("End init\n");
 
 
     pinDeclaration();
@@ -85,24 +86,16 @@ int main(void)
 
     //start energy timer A0
     TA0CCR0 = 0;
-    TA0CCR0 = (62.5 * ENERGY_UPDATE);
+    TA0CCR0 = (62.5*0.5);
 
+    //start burst timer A4
     TA4CCR0 = 0; //Reset timer, can be removed
-    TA4CCR0 = (62.5 * BURST_REPETITION);
+    TA4CCR0 = 62.5;
 
-
-    //Start timer burst TODO
    while (1)
     {
         //select burst
         nodeState[0] = selectBurstLength(energyLevel);
-        /*if (nodeState[0] < 0)
-        {
-            printf("[ERR]: burstLength Error\n");
-            return 0;
-        }*/
-        //printf("BurstLength --> %d\n", nodeState[0]);
-        __delay_cycles(1000);
         //---------------------------- TODO EDIT FUNCTION --------------------------------
         if (energy_count >= energy_count_limit)
         {
@@ -212,7 +205,6 @@ __interrupt void T0A0_ISR(void)
         printf("[UPDATE] EnergyLevel --> %d\n", energyLevel);
 
     }
-    //TA0CTL &= ~MC; // stop timer
 }
 
 /*#pragma vector = TIMER1_A0_VECTOR
@@ -254,21 +246,26 @@ __interrupt void T4A0_ISR(void)
     printf("SendBurst\n");
     printf("[BURST] EnergyLevel --> %d\n", energyLevel);
     TB0CCR0 = (2000 / OOK_NODE0);
-    //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
 }
 
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void T0B0_ISR(void)
 {
+    //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
+    GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
+    __delay_cycles(100000);
+    printf("PULSES SEND --> %d\n", sendPulses);
     sendPulses++;
-    //printf("PULSES SEND --> %d\n", sendPulses);
+
 
     if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
     {
 
         TB0CCR0 = 0; //Stop timer
         sendPulses = 0;
-        //GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+        printf("Fine invio burst\n");
+        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
         nodeStatus = BURST_WAIT;
         //printf("END PULSES SEND\n");
     }

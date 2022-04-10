@@ -27,7 +27,7 @@ void initBoard()
 
 void setTimers()
 {
-    //Timer A0_0
+    //Timer A0_0 ---- ENERGY UPDATE
     TA0CCTL0 = CCIE; // enable capture control interupt
     //Set timer speed at 62.5 kHz, min speed for CLK at 16 MHz
     TA0CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider
@@ -46,13 +46,13 @@ void setTimers()
      TA2CCR0 = 0; // set interupt value
      TA2CCTL0 &= 0x10; // set compare mode
 */
-     //Timer A4_0
+     //Timer A4_0 ---- BURST REPETITION
      TA4CCTL0 = CCIE; // enable capture control interupt
      TA4CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider
      TA4CCR0 = 0; // set interupt value
      TA4CCTL0 &= 0x10; // set compare mode
 
-     //Timer B0_0
+     //Timer B0_0 ---- PULSES SEND
      TB0CCTL0 = CCIE; // enable capture control interupt
      TB0CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
      TB0CCR0 = 0; // set interupt value
@@ -96,6 +96,8 @@ void pinDeclaration()
     P3IES |= BIT1;
     P3IFG &= ~BIT1;*/
 
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin Data send
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin Burst send
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin notify Data send
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
 }
