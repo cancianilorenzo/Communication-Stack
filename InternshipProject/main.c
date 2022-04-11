@@ -105,8 +105,11 @@ int main(void)
             energy_count = 0;
         }
 
+        /*
+        //custom values for other nodes for testing goal
         nodeState[1] = MIDDLE_BURST;
         nodeState[2] = MIDDLE_BURST;
+        */
 
         if (nodeStatus != BURST_RX)
         {
