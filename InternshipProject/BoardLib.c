@@ -85,9 +85,7 @@ void setBoardFrequency()
 
 void pinDeclaration()
 {
-
-    //GPIO_setAsInputPin(GPIO_PORT_P3, GPIO_PIN0 | GPIO_PIN1);
-    //P3REN = (BIT0 | BIT1);    // resistor enable, probably not needed TEST ------------------- TODO
+    //3.0 DATA RX----3.1 BURST RX
     P3IES = (BIT0 | BIT1);  // set interrupt on edge select
     P3IFG = 0;              // clear interrupt flags
     P3IE = (BIT0 | BIT1);  // set interupt enable on pins

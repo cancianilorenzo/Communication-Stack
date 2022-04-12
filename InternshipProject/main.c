@@ -28,7 +28,7 @@
 #define BURST_REPETITION 1000 //Repetition of burst in ms
 
 #define ENERGY_CONSUMED_TX 70 //Energy consumed in TX
-#define ENERGY_CONSUMED_RX 35 //Energy consumed in TX
+#define ENERGY_CONSUMED_RX 35 //Energy consumed in RX
 
 #define NODES 3 //# of nodes
 #define OOK_NODE0 30
@@ -86,11 +86,11 @@ int main(void)
 
     //start energy timer A0
     TA0CCR0 = 0;
-    //TA0CCR0 = (62.5 * 0.5);
+    TA0CCR0 = (62.5 * 0.5);
 
     //start burst timer A4
     TA4CCR0 = 0; //Reset timer, can be removed
-    //TA4CCR0 = 62.5;
+    TA4CCR0 = 62.5;
 
     while (1)
     {
@@ -105,11 +105,9 @@ int main(void)
             energy_count = 0;
         }
 
-        /*
-         //custom values for other nodes for testing goal
-         nodeState[1] = MIDDLE_BURST;
-         nodeState[2] = MIDDLE_BURST;
-         */
+        //custom values for other nodes for testing goal
+        //nodeState[1] = MIDDLE_BURST;
+        //nodeState[2] = MIDDLE_BURST;
 
         if (nodeStatus != BURST_RX)
         {
@@ -233,7 +231,7 @@ __interrupt void T1A0_ISR(void)
      }*/
     if (dataStatus == DATA_TX)
     {
-        printf("[DATA] Data Sent\n");
+        printf("[DATA_SEND] Data Sent\n");
         dataStatus = DATA_WAIT;
         TA1CCR0 = 0; //Stop timer A1
         energyLevel = 0;
@@ -242,7 +240,7 @@ __interrupt void T1A0_ISR(void)
 
     if (dataStatus == DATA_RX)
     {
-        printf("[DATA] Data Received\n");
+        printf("[DATA_REC] Data Received\n");
         dataStatus = DATA_WAIT;
     }
 }
@@ -250,7 +248,7 @@ __interrupt void T1A0_ISR(void)
  #pragma vector = TIMER2_A0_VECTOR
  __interrupt void T2A0_ISR(void)
  {
- //timer per il calcolo della frequenza di ricezione ----- TODO
+ // timer per il calcolo della frequenza di ricezione ----- TODO ---- TAxR counter
  }
  */
 //Timer BURST REPETITION
@@ -260,7 +258,7 @@ __interrupt void T4A0_ISR(void)
     TB0CCR0 = 0; //Stop timer B0
     sendPulses = 0;
     nodeStatus = BURST_TX;
-    //printf("SendBurst\n");
+    printf("SendBurst\n");
     //printf("[BURST] EnergyLevel --> %d\n", energyLevel);
     TB0CCR0 = (2000 / OOK_NODE0);
     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
@@ -296,21 +294,21 @@ __interrupt void P3_ISR(void)
     {
         GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
 
-       /* if (energyLevel == MAX_ENERGY && nodeStatus != BURST_TX
-                && dataStatus == DATA_WAIT)
-            printf("BURST_RX\n");
-        {
-            nodeStatus = BURST_RX;
-            if (count == 0)
-            {
-                TA1CCR0 = 0; //Stop timer A1
-                TA1CCR0 = (2000 / TIMEOUT);
-            }
-            TA1CCR0 = 0; //Stop timer A1
-            TA1CCR0 = (2000 / TIMEOUT);
-            count++;
+        /* if (energyLevel == MAX_ENERGY && nodeStatus != BURST_TX
+         && dataStatus == DATA_WAIT)
+         printf("BURST_RX\n");
+         {
+         nodeStatus = BURST_RX;
+         if (count == 0)
+         {
+         TA1CCR0 = 0; //Stop timer A1
+         TA1CCR0 = (2000 / TIMEOUT);
+         }
+         TA1CCR0 = 0; //Stop timer A1
+         TA1CCR0 = (2000 / TIMEOUT);
+         count++;
 
-        }*/
+         }*/
 
         //Clear interrupt flag
         P3IFG &= ~BIT1;
@@ -318,29 +316,25 @@ __interrupt void P3_ISR(void)
     }
 
     if (P3IFG & BIT0)
+    {
+        printf("[DATA_REC] BEFORE -- EnergyLevel --> %d\n", energyLevel);
+        if ((energyLevel == ENERGY_CONSUMED_RX) || (energyLevel > ENERGY_CONSUMED_RX))
         {
-            GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
-
-           /* if (energyLevel == MAX_ENERGY && nodeStatus != BURST_TX
-                    && dataStatus == DATA_WAIT)
-                printf("BURST_RX\n");
-            {
-                nodeStatus = BURST_RX;
-                if (count == 0)
-                {
-                    TA1CCR0 = 0; //Stop timer A1
-                    TA1CCR0 = (2000 / TIMEOUT);
-                }
-                TA1CCR0 = 0; //Stop timer A1
-                TA1CCR0 = (2000 / TIMEOUT);
-                count++;
-
-            }*/
-
-            //Clear interrupt flag
-            P3IFG &= ~BIT0;
-
+            //Stop timer 1 A0
+            //Start timer 1 A0
+            dataStatus = DATA_RX;
+            energyLevel = energyLevel - ENERGY_CONSUMED_RX;
+            TA1CCR0 = 0; //Stop timer A1
+            TA1CCR0 = 40000; //Start timer A1
+            printf("[DATA_REC] AFTER -- EnergyLevel --> %d\n", energyLevel);
         }
+        else
+        {
+            printf("[DATA_REC] Error in energyLevel\n");
+        }
+        P3IFG &= ~BIT0;
+
+    }
 
 }
 
