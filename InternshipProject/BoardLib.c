@@ -36,16 +36,16 @@ void setTimers()
 
     //Timer A1_0
      TA1CCTL0 = CCIE; // enable capture control interupt
-     TA1CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
+     TA1CTL = TASSEL_1 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
      TA1CCR0 = 0; // set interupt value
      TA1CCTL0 &= 0x10; // set compare mode
-/*
-     //Timer A2_0
+
+     //Timer A2_0 ---- NODE IDENTIFICATION
      TA2CCTL0 = CCIE; // enable capture control interupt
-     TA2CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
+     TA2CTL = TASSEL_1 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
      TA2CCR0 = 0; // set interupt value
      TA2CCTL0 &= 0x10; // set compare mode
-     */
+
     //Timer A4_0 ---- BURST REPETITION
     TA4CCTL0 = CCIE; // enable capture control interupt
     TA4CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider

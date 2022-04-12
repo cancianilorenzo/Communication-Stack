@@ -2,6 +2,8 @@
  ----TODO
  Initialize ALL PORTS --> unused port to LOW to avoid energy consumption
  Fix DATA_TX Timer (65ms impossibile with the actual MCLK)
+ At 30kHz about 0.017s to send the (256*2) burst
+
 
  */
 
@@ -34,7 +36,7 @@
 #define OOK_NODE0 30
 #define OOK_NODE1 25
 #define OOK_NODE2 35
-#define TIMEOUT   100     // timeout for the burst rx pulses (us)
+#define TIMEOUT   100     // 200us timeout burst RX
 
 //Array to store burstLength of other nodes
 int nodeState[NODES];
@@ -188,6 +190,7 @@ void dataSend()
 
     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
     energyLevel = energyLevel - ENERGY_CONSUMED_TX;
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN2);
     dataStatus = DATA_TX;
     nodeStatus = BURST_WAIT;
 }
@@ -223,12 +226,12 @@ __interrupt void T1A0_ISR(void)
 {
     //Timer ausiliario
     //Reached timeout for burst reception (no more pulse on the pin)
-    /*if (nodeStatus == BURST_RX)
-     {
-     //Fermo timer T2A0, ne leggo il valore, divido per capire che nodo è, assegno al nodo il burst rettificato
-     nodeStatus = BURST_WAIT;
-     TA1CCR0 = 0; //Stop timer A1
-     }*/
+    if (nodeStatus == BURST_RX)
+    {
+        //Fermo timer T2A0, ne leggo il valore, divido per capire che nodo è, assegno al nodo il burst rettificato
+        nodeStatus = BURST_WAIT;
+        TA1CCR0 = 0; //Stop timer A1
+    }
     if (dataStatus == DATA_TX)
     {
         printf("[DATA_SEND] Data Sent\n");
@@ -240,6 +243,8 @@ __interrupt void T1A0_ISR(void)
 
     if (dataStatus == DATA_RX)
     {
+        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
+        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
         printf("[DATA_REC] Data Received\n");
         dataStatus = DATA_WAIT;
     }
@@ -251,6 +256,7 @@ __interrupt void T1A0_ISR(void)
  // timer per il calcolo della frequenza di ricezione ----- TODO ---- TAxR counter
  }
  */
+
 //Timer BURST REPETITION
 #pragma vector = TIMER4_A0_VECTOR
 __interrupt void T4A0_ISR(void)
@@ -292,23 +298,26 @@ __interrupt void P3_ISR(void)
 
     if (P3IFG & BIT1)
     {
-        GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+        if (/*(energyLevel == MAX_ENERGY) &&*/(nodeStatus != BURST_TX)
+                && (dataStatus == DATA_WAIT))
+        {
 
-        /* if (energyLevel == MAX_ENERGY && nodeStatus != BURST_TX
-         && dataStatus == DATA_WAIT)
-         printf("BURST_RX\n");
-         {
-         nodeStatus = BURST_RX;
-         if (count == 0)
-         {
-         TA1CCR0 = 0; //Stop timer A1
-         TA1CCR0 = (2000 / TIMEOUT);
-         }
-         TA1CCR0 = 0; //Stop timer A1
-         TA1CCR0 = (2000 / TIMEOUT);
-         count++;
+            printf("BURST_RX\n");
+            {
+                nodeStatus = BURST_RX;
+                if (count == 0)
+                {
+                    TA1CCR0 = 0; //Stop timer A1
+                    TA1CCR0 = TIMEOUT;
+                    printf("[BURST_RX] count --> %d\n", count);
+                }
+                printf("[BURST_RX] count --> %d\n", count);
+                TA1CCR0 = 0; //Stop timer A1
+                TA1CCR0 = TIMEOUT;
+                count++;
 
-         }*/
+            }
+        }
 
         //Clear interrupt flag
         P3IFG &= ~BIT1;
@@ -318,14 +327,15 @@ __interrupt void P3_ISR(void)
     if (P3IFG & BIT0)
     {
         printf("[DATA_REC] BEFORE -- EnergyLevel --> %d\n", energyLevel);
-        if ((energyLevel == ENERGY_CONSUMED_RX) || (energyLevel > ENERGY_CONSUMED_RX))
+        if ((energyLevel == ENERGY_CONSUMED_RX)
+                || (energyLevel > ENERGY_CONSUMED_RX))
         {
-            //Stop timer 1 A0
-            //Start timer 1 A0
-            dataStatus = DATA_RX;
-            energyLevel = energyLevel - ENERGY_CONSUMED_RX;
             TA1CCR0 = 0; //Stop timer A1
             TA1CCR0 = 40000; //Start timer A1
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+            dataStatus = DATA_RX;
+            energyLevel = energyLevel - ENERGY_CONSUMED_RX;
             printf("[DATA_REC] AFTER -- EnergyLevel --> %d\n", energyLevel);
         }
         else
