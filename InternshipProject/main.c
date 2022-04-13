@@ -28,6 +28,7 @@
 
 #define ENERGY_UPDATE 500 //500ms energy update
 #define BURST_REPETITION 1000 //Repetition of burst in ms
+#define BURST_GUARD 40 //Burst Guard
 
 #define ENERGY_CONSUMED_TX 70 //Energy consumed in TX
 #define ENERGY_CONSUMED_RX 35 //Energy consumed in RX
@@ -44,6 +45,7 @@ int nodeNum;
 int sendPulses;
 
 int count = 0; //pulses incoming
+int timerA2Value = 0.00;
 
 //#define DATA_TX_TIME        50000   // data transmission time
 
@@ -231,6 +233,19 @@ __interrupt void T1A0_ISR(void)
         //Fermo timer T2A0, ne leggo il valore, divido per capire che nodo è, assegno al nodo il burst rettificato
         nodeStatus = BURST_WAIT;
         TA1CCR0 = 0; //Stop timer A1
+        TA2CCR0 = 0; // Stop timer used to calculate node frequency
+        //printf("[BURST_RX] count --> %d\n", count);
+        /*
+         Get (timer frequency*Ticks counted)/count;
+         */
+        //select nodes frequency
+        printf("TIMER--> %d\n", timerA2Value);
+        printf("COUNT --> %d", count);
+        int frequency = (500*timerA2Value);
+        frequency = (frequency/count);
+        TA2CCR0 = 0; // Stop timer used to calculate node frequency
+        printf("[BURST_FREQUENCY] --> %d\n", frequency);
+        count = 0;
     }
     if (dataStatus == DATA_TX)
     {
@@ -249,13 +264,7 @@ __interrupt void T1A0_ISR(void)
         dataStatus = DATA_WAIT;
     }
 }
-/*
- #pragma vector = TIMER2_A0_VECTOR
- __interrupt void T2A0_ISR(void)
- {
- // timer per il calcolo della frequenza di ricezione ----- TODO ---- TAxR counter
- }
- */
+
 
 //Timer BURST REPETITION
 #pragma vector = TIMER4_A0_VECTOR
@@ -302,16 +311,23 @@ __interrupt void P3_ISR(void)
                 && (dataStatus == DATA_WAIT))
         {
 
-            printf("BURST_RX\n");
+            //printf("BURST_RX\n");
             {
                 nodeStatus = BURST_RX;
                 if (count == 0)
                 {
-                    TA1CCR0 = 0; //Stop timer A1
-                    TA1CCR0 = TIMEOUT;
-                    printf("[BURST_RX] count --> %d\n", count);
+                    TA2CCR0 = 65535; // Start timer to count delay for obtain node frequency
+                    //printf("[BURST_RX] count --> %d\n", count);
                 }
-                printf("[BURST_RX] count --> %d\n", count);
+
+                if (count == (SHORT_BURST - BURST_GUARD))
+                {
+                    timerA2Value = TA2R; //Store value of timer
+                    printf("[BURST_REC] --> %d\n", timerA2Value);
+                    TA2CCR0 = 0; // Stop timer used to calculate node frequency
+                }
+
+                //printf("[BURST_RX] count --> %d\n", count);
                 TA1CCR0 = 0; //Stop timer A1
                 TA1CCR0 = TIMEOUT;
                 count++;
@@ -326,7 +342,7 @@ __interrupt void P3_ISR(void)
 
     if (P3IFG & BIT0)
     {
-        printf("[DATA_REC] BEFORE -- EnergyLevel --> %d\n", energyLevel);
+        //printf("[DATA_REC] BEFORE -- EnergyLevel --> %d\n", energyLevel);
         if ((energyLevel == ENERGY_CONSUMED_RX)
                 || (energyLevel > ENERGY_CONSUMED_RX))
         {
@@ -336,15 +352,23 @@ __interrupt void P3_ISR(void)
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
             dataStatus = DATA_RX;
             energyLevel = energyLevel - ENERGY_CONSUMED_RX;
-            printf("[DATA_REC] AFTER -- EnergyLevel --> %d\n", energyLevel);
+            //printf("[DATA_REC] AFTER -- EnergyLevel --> %d\n", energyLevel);
         }
         else
         {
-            printf("[DATA_REC] Error in energyLevel\n");
+            //printf("[DATA_REC] Error in energyLevel\n");
         }
         P3IFG &= ~BIT0;
 
     }
 
 }
+
+
+ #pragma vector = TIMER2_A0_VECTOR
+ __interrupt void T2A0_ISR(void)
+ {
+ // timer per il calcolo della frequenza di ricezione ----- TODO ---- TAxR counter
+ }
+
 
