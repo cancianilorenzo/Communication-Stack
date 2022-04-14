@@ -236,18 +236,44 @@ __interrupt void T1A0_ISR(void)
         TA2CCR0 = 0; // Stop timer used to calculate node frequency
         TA2R = 0;
         frequency = 0;
-        frequency = (250*timerA2Value);
+        frequency = (250 * timerA2Value);
         printf("FREQUENCY_MULTI--> %d\n", frequency);
-        frequency = (frequency/burstTimer);
+        frequency = (frequency / burstTimer);
         printf("FREQUENCYBURSTTIMER --> %d\n", burstTimer);
         printf("TIMER--> %d\n", timerA2Value);
         printf("FREQUENCY--> %d\n", frequency);
         //count = 0;
-        if((frequency == OOK_NODE1) || ((frequency <= OOK_NODE1+5)) || (frequency >= (OOK_NODE1-5))){
-            nodeState[1] = count;
+        if ((frequency == OOK_NODE1) || ((frequency <= OOK_NODE1 + 5))
+                || (frequency >= (OOK_NODE1 - 5)))
+        {
+            if (count > ((LONG_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = LONG_BURST;
+            }
+            else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = MIDDLE_BURST;
+            }
+            else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = SHORT_BURST;
+            }
         }
-        else if((frequency == OOK_NODE2) || ((frequency <= OOK_NODE2+5)) || (frequency >= (OOK_NODE2-5))){
-            nodeState[2] = count;
+        else if ((frequency == OOK_NODE2) || ((frequency <= OOK_NODE2 + 5))
+                || (frequency >= (OOK_NODE2 - 5)))
+        {
+            if (count > ((LONG_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = LONG_BURST;
+            }
+            else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = MIDDLE_BURST;
+            }
+            else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = SHORT_BURST;
+            }
         }
 
         count = 0;
@@ -272,7 +298,6 @@ __interrupt void T1A0_ISR(void)
         dataStatus = DATA_WAIT;
     }
 }
-
 
 //Timer BURST REPETITION
 #pragma vector = TIMER4_A0_VECTOR
@@ -340,7 +365,7 @@ __interrupt void P3_ISR(void)
                     TA1CCR0 = 0; //Stop timer A1
                     TA1CCR0 = TIMEOUT;
                 }
-                   //If no delay, doesn't work, why?
+                //If no delay, doesn't work, why?
                 printf("[BURST_RX] count --> %d\n", count);
                 count++;
                 TA1CCR0 = 0; //Stop timer A1
@@ -378,11 +403,9 @@ __interrupt void P3_ISR(void)
 
 }
 
-
- #pragma vector = TIMER2_A0_VECTOR
- __interrupt void T2A0_ISR(void)
- {
+#pragma vector = TIMER2_A0_VECTOR
+__interrupt void T2A0_ISR(void)
+{
 //TAxR
- }
-
+}
 
