@@ -6,6 +6,7 @@ TODO: </br>
 -fix node selection (node[0], [1], [2]) </br>
 -
 
-FIX Ultimo toggle sul BURST --- TX
-FIX Tempo 1sec, segna 2sec
+FIX Ultimo toggle sul BURST --- TX </br>
+FIX Tempo 1sec, segna 2sec </br>
+FIX Ricezione burst</br>
 
