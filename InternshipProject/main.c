@@ -34,7 +34,7 @@
 #define ENERGY_CONSUMED_RX 35 //Energy consumed in RX
 
 #define NODES 3 //# of nodes
-#define OOK_NODE0 30
+#define OOK_NODE0 15
 #define OOK_NODE1 25
 #define OOK_NODE2 35
 #define TIMEOUT   50
@@ -76,6 +76,7 @@ int energy_increment = 0;
 void dataSend(); //function to call when nodes start transimitting data
 
 int main(void)
+1ò
 {
     initBoard();
     //__delay_cycles(60);
@@ -237,11 +238,12 @@ __interrupt void T1A0_ISR(void)
         TA2R = 0;
         frequency = 0;
         frequency = (250 * timerA2Value);
-        printf("FREQUENCY_MULTI--> %d\n", frequency);
+       // printf("FREQUENCY_MULTI--> %d\n", frequency);
         frequency = (frequency / burstTimer);
-        printf("FREQUENCYBURSTTIMER --> %d\n", burstTimer);
-        printf("TIMER--> %d\n", timerA2Value);
+       // printf("FREQUENCYBURSTTIMER --> %d\n", burstTimer);
+       // printf("TIMER--> %d\n", timerA2Value);
         printf("FREQUENCY--> %d\n", frequency);
+        printf("COUNT--> %d\n", count);
         //count = 0;
         if ((frequency == OOK_NODE1) || ((frequency <= OOK_NODE1 + 5))
                 || (frequency >= (OOK_NODE1 - 5)))
@@ -315,22 +317,23 @@ __interrupt void T4A0_ISR(void)
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void T0B0_ISR(void)
 {
+    if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
+        {
+
+            TB0CCR0 = 0; //Stop timer
+            sendPulses = 0;
+            //printf("Fine invio burst\n");
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+            nodeStatus = BURST_WAIT;
+            //printf("END PULSES SEND\n");
+        }
     GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
     //__delay_cycles(100000);
     //printf("PULSES SEND --> %d\n", sendPulses);
     sendPulses++;
 
-    if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
-    {
 
-        TB0CCR0 = 0; //Stop timer
-        sendPulses = 0;
-        //printf("Fine invio burst\n");
-        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
-        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-        nodeStatus = BURST_WAIT;
-        //printf("END PULSES SEND\n");
-    }
 }
 
 //Handler BURST_RX pin 1.2
@@ -366,7 +369,7 @@ __interrupt void P3_ISR(void)
                     TA1CCR0 = TIMEOUT;
                 }
                 //If no delay, doesn't work, why?
-                printf("[BURST_RX] count --> %d\n", count);
+                //printf("[BURST_RX] count --> %d\n", count);
                 count++;
                 TA1CCR0 = 0; //Stop timer A1
                 TA1CCR0 = TIMEOUT; //restart timer
