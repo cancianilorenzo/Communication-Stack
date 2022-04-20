@@ -30,7 +30,7 @@ void setTimers()
     //Timer A0_0 ---- ENERGY UPDATE
     TA0CCTL0 = CCIE; // enable capture control interupt
     //Set timer speed at 62.5 kHz, min speed for CLK at 16 MHz
-    TA0CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider
+    TA0CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /1 divider
     TA0CCR0 = 0; // set interupt value
     TA0CCTL0 &= 0x10; // set compare mode
 
@@ -49,7 +49,7 @@ void setTimers()
 
     //Timer A4_0 ---- BURST REPETITION
     TA4CCTL0 = CCIE; // enable capture control interupt
-    TA4CTL = TASSEL_1 + MC_1 + ID_3;  // Use ACLK in up mode, /8 divider
+    TA4CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /8 divider
     TA4CCR0 = 0; // set interupt value
     TA4CCTL0 &= 0x10; // set compare mode
 
@@ -97,4 +97,7 @@ void pinDeclaration()
     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+
+    //put low pin of burst TX --> probably this is the problem that invert the logic of our code
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
 }
