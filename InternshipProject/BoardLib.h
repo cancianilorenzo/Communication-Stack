@@ -11,6 +11,7 @@ void initBoard();
 void setTimers();
 void setBoardFrequency();
 void pinDeclaration();
-void UartInit();
+void UARTInit();
+void UART_TXData();
 
 #endif

@@ -42,6 +42,7 @@
 int nodeState[NODES];
 int nodeNum;
 int sendPulses;
+char *message;
 
 int count = 0; //pulses incoming
 int timerA2Value = 0;
@@ -79,15 +80,16 @@ int main(void)
     //__delay_cycles(60);
     setBoardFrequency();
     __delay_cycles(60);
+    UARTInit();
     setTimers();
-    printf("End init\n");
+    //printf("End init\n");
 
     pinDeclaration();
 
     nodeState[0] = 100;
 
     energy_count_limit = (ENERGY_CHANGE / 2)
-    + (rand() % (ENERGY_CHANGE / 2 + 1));
+            + (rand() % (ENERGY_CHANGE / 2 + 1));
     energy_increment = rand() % (ENERGY_INCREMENT + 1);
 
     //start energy timer A0
@@ -96,7 +98,7 @@ int main(void)
     TA0CCR0 = 125;
 
     //start burst timer A4
-    TA4CCR0 = 0;//Reset timer, can be removed
+    TA4CCR0 = 0; //Reset timer, can be removed
     //----------------------------- TODO -------------------------
     TA4CCR0 = 250;
 
@@ -108,7 +110,7 @@ int main(void)
         if (energy_count >= energy_count_limit)
         {
             energy_count_limit = (ENERGY_CHANGE / 2)
-            + (rand() % (ENERGY_CHANGE / 2 + 1));
+                    + (rand() % (ENERGY_CHANGE / 2 + 1));
             energy_increment = rand() % (ENERGY_INCREMENT + 1);
             energy_count = 0;
         }
@@ -220,67 +222,68 @@ __interrupt void T0A0_ISR(void)
 
         energy_step = 120 + energy_step;
         //printf("[UPDATE] EnergyLevel --> %d\n", energyLevel);
-        GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0); //Add on 18042022 for DEBUG --REMOVE --TODO
+        message = "UE ";
+        UART_TXData(message);
     }
 
 }
 
-/*#pragma vector = TIMER1_A0_VECTOR
+#pragma vector = TIMER1_A0_VECTOR
 __interrupt void T1A0_ISR(void)
 {
     //Timer ausiliario
     //Reached timeout for burst reception (no more pulse on the pin)
-    if (nodeStatus == BURST_RX)
-    {
-        nodeStatus = BURST_WAIT;
-        TA1CCR0 = 0; //Stop timer A1
-        TA2CCR0 = 0; // Stop timer used to calculate node frequency
-        TA2R = 0;
-        frequency = 0;
-        frequency = (250 * timerA2Value);
-        // printf("FREQUENCY_MULTI--> %d\n", frequency);
-        frequency = (frequency / burstTimer);
-        // printf("FREQUENCYBURSTTIMER --> %d\n", burstTimer);
-        // printf("TIMER--> %d\n", timerA2Value);
-        printf("FREQUENCY--> %d\n", frequency);
-        printf("COUNT--> %d\n", count);
-        //count = 0;
-        if ((frequency == OOK_NODE1) || ((frequency <= OOK_NODE1 + 5))
-                || (frequency >= (OOK_NODE1 - 5)))
-        {
-            if (count > ((LONG_BURST - BURST_GUARD) - 1))
-            {
-                nodeState[1] = LONG_BURST;
-            }
-            else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
-            {
-                nodeState[1] = MIDDLE_BURST;
-            }
-            else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
-            {
-                nodeState[1] = SHORT_BURST;
-            }
-        }
-        else if ((frequency == OOK_NODE2) || ((frequency <= OOK_NODE2 + 5))
-                || (frequency >= (OOK_NODE2 - 5)))
-        {
-            if (count > ((LONG_BURST - BURST_GUARD) - 1))
-            {
-                nodeState[1] = LONG_BURST;
-            }
-            else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
-            {
-                nodeState[1] = MIDDLE_BURST;
-            }
-            else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
-            {
-                nodeState[1] = SHORT_BURST;
-            }
-        }
+    /* if ((nodeStatus == BURST_RX) && (dataStatus = DATA_RX))
+     {
+     nodeStatus = BURST_WAIT;
+     TA1CCR0 = 0; //Stop timer A1
+     TA2CCR0 = 0; // Stop timer used to calculate node frequency
+     TA2R = 0;
+     frequency = 0;
+     frequency = (250 * timerA2Value);
+     // printf("FREQUENCY_MULTI--> %d\n", frequency);
+     frequency = (frequency / burstTimer);
+     // printf("FREQUENCYBURSTTIMER --> %d\n", burstTimer);
+     // printf("TIMER--> %d\n", timerA2Value);
+     printf("FREQUENCY--> %d\n", frequency);
+     printf("COUNT--> %d\n", count);
+     //count = 0;
+     if ((frequency == OOK_NODE1) || ((frequency <= OOK_NODE1 + 5))
+     || (frequency >= (OOK_NODE1 - 5)))
+     {
+     if (count > ((LONG_BURST - BURST_GUARD) - 1))
+     {
+     nodeState[1] = LONG_BURST;
+     }
+     else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
+     {
+     nodeState[1] = MIDDLE_BURST;
+     }
+     else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
+     {
+     nodeState[1] = SHORT_BURST;
+     }
+     }
+     else if ((frequency == OOK_NODE2) || ((frequency <= OOK_NODE2 + 5))
+     || (frequency >= (OOK_NODE2 - 5)))
+     {
+     if (count > ((LONG_BURST - BURST_GUARD) - 1))
+     {
+     nodeState[1] = LONG_BURST;
+     }
+     else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
+     {
+     nodeState[1] = MIDDLE_BURST;
+     }
+     else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
+     {
+     nodeState[1] = SHORT_BURST;
+     }
+     }
 
-        count = 0;
+     count = 0;
 
-    }
+     }*/
     if (dataStatus == DATA_TX)
     {
         printf("[DATA_SEND] Data Sent\n");
@@ -296,11 +299,12 @@ __interrupt void T1A0_ISR(void)
     {
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
-        printf("[DATA_REC] Data Received\n");
+        message = "EDRX ";
+        UART_TXData(message);
         dataStatus = DATA_WAIT;
     }
 }
-*/
+
 //Timer BURST REPETITION
 #pragma vector = TIMER4_A0_VECTOR
 __interrupt void T4A0_ISR(void)
@@ -317,24 +321,28 @@ __interrupt void T4A0_ISR(void)
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void T0B0_ISR(void)
 {
-    if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
-    {
-
-        TB0CCR0 = 0; //Stop timer
-        sendPulses = 0;
-        //printf("Fine invio burst\n");
-        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
-        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-        nodeStatus = BURST_WAIT;
-        //printf("END PULSES SEND\n");
-    }
     GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
     //__delay_cycles(100000);
     //printf("PULSES SEND --> %d\n", sendPulses);
     sendPulses++;
+    if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
+    {
+
+        TB0CCR0 = 0; //Stop timer
+        //sprintf(message, "EBTX-%d ", sendPulses);
+        message = "EBTX ";
+        //printf("%s\n", message);
+        UART_TXData(message);
+        sendPulses = 0;
+        //printf("Fine invio burst\n");
+        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+        //GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        nodeStatus = BURST_WAIT;
+        //printf("END PULSES SEND\n");
+    }
 
 }
-/*
+
 //Handler BURST_RX pin 1.2
 #pragma vector = PORT3_VECTOR
 __interrupt void P3_ISR(void)
@@ -342,7 +350,7 @@ __interrupt void P3_ISR(void)
 
     if (P3IFG & BIT1)
     {
-        if (/*(energyLevel == MAX_ENERGY) &&*//*(nodeStatus != BURST_TX)
+        if (/*(energyLevel == MAX_ENERGY) &&*/(nodeStatus != BURST_TX)
                 && (dataStatus == DATA_WAIT))
         {
 
@@ -367,8 +375,6 @@ __interrupt void P3_ISR(void)
                     TA1CCR0 = 0; //Stop timer A1
                     TA1CCR0 = TIMEOUT;
                 }
-                //If no delay, doesn't work, why?
-                //printf("[BURST_RX] count --> %d\n", count);
                 count++;
                 TA1CCR0 = 0; //Stop timer A1
                 TA1CCR0 = TIMEOUT; //restart timer
@@ -387,12 +393,14 @@ __interrupt void P3_ISR(void)
         if ((energyLevel == ENERGY_CONSUMED_RX)
                 || (energyLevel > ENERGY_CONSUMED_RX))
         {
+            dataStatus = DATA_RX;
             TA1CCR0 = 0; //Stop timer A1
             TA1CCR0 = DATA_TX_TIME; //Start timer A1
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
-            dataStatus = DATA_RX;
             energyLevel = energyLevel - ENERGY_CONSUMED_RX;
+            message = "IDRX ";
+            UART_TXData(message);
             //printf("[DATA_REC] AFTER -- EnergyLevel --> %d\n", energyLevel);
         }
         else
@@ -413,4 +421,3 @@ __interrupt void T2A0_ISR(void)
     //app crash
 }
 
-*/

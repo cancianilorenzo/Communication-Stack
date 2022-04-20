@@ -25,7 +25,7 @@ void initBoard()
 
 }
 
-void UartInit()
+void UARTInit()
 {
     P2SEL0 &= ~(BIT0 | BIT1);
     P2SEL1 |= (BIT0 | BIT1);                           // USCI_A3 UART operation
@@ -37,8 +37,8 @@ void UartInit()
     // Fractional portion = 0.083
     // User's Guide Table 21-4: UCBRSx = 0x04
     // UCBRFx = int ( (52.083-52)*16) = 1
-    UCA0BRW = 52;                                             // 8000000/16/9600
-    UCA0MCTLW |= UCOS16 | UCBRF_1 | 0x0400;
+    UCA0BRW = 104;                                            // 8000000/16/9600
+    UCA0MCTLW |= UCOS16 | UCBRF_2 | 0xD6;
     UCA0CTLW0 &= ~UCSWRST;                                 // Initialize eUSCI
 
     UCA0IE |= UCRXIE;
@@ -119,4 +119,15 @@ void pinDeclaration()
 
     //put low pin of burst TX --> probably this is the problem that invert the logic of our code
     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+}
+
+void UART_TXData(char* c)
+{
+    int position;
+    int i;
+    for (position = 0; position < sizeof(c); position++)
+            {
+                UCA0TXBUF = c[position];
+                for(i = 0; i < 5000; i++);//delay
+            }
 }
