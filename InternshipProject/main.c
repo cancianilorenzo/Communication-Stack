@@ -3,8 +3,6 @@
  Initialize ALL PORTS --> unused port to LOW to avoid energy consumption
  Fix DATA_TX Timer (65ms impossibile with the actual MCLK)
  At 30kHz about 0.017s to send the (256*2) burst
-
-
  */
 
 #include <msp430.h>
@@ -94,17 +92,19 @@ int main(void)
 
     //start energy timer A0
     TA0CCR0 = 0;
+    //----------------------------- TODO -------------------------
     TA0CCR0 = 125;
 
     //start burst timer A4
     TA4CCR0 = 0;//Reset timer, can be removed
+    //----------------------------- TODO -------------------------
     TA4CCR0 = 250;
 
     while (1)
     {
         //select burst
         nodeState[0] = selectBurstLength(energyLevel);
-        //---------------------------- TODO EDIT FUNCTION --------------------------------
+        //---------------------------- TODO EDIT FUNCTION IN THE FUTURE --------------------------------
         if (energy_count >= energy_count_limit)
         {
             energy_count_limit = (ENERGY_CHANGE / 2)
@@ -127,7 +127,7 @@ int main(void)
                         && ACTUAL_NODE == 0)
                 {
                     //Send data from 0 to 1
-                    printf("[DATA] From 0 to 1\n");
+                    //printf("[DATA] From 0 to 1\n");
                     //nodeState[1] = 0;
                     dataSend();
 
@@ -136,7 +136,7 @@ int main(void)
                         && ACTUAL_NODE == 2)
                 {
                     //Send data from 2 to 0
-                    printf("[DATA] From 2 to 0\n");
+                    //printf("[DATA] From 2 to 0\n");
                     //nodeState[0] = 0;
                     dataSend();
 
@@ -145,7 +145,7 @@ int main(void)
                         && ACTUAL_NODE == 1)
                 {
                     //Send data from 1 to 2
-                    printf("[DATA] From 1 to 2\n");
+                    //printf("[DATA] From 1 to 2\n");
                     //nodeState[2] = 0;
                     dataSend();
 
@@ -158,7 +158,7 @@ int main(void)
                         && ACTUAL_NODE == 0)
                 {
                     //Send data from 0 to 2
-                    printf("[DATA] From 0 to 2\n");
+                    //printf("[DATA] From 0 to 2\n");
                     //nodeState[2] = 0;
                     dataSend();
 
@@ -167,7 +167,7 @@ int main(void)
                         && ACTUAL_NODE == 1)
                 {
                     //Send data from 1 to 0
-                    printf("[DATA] From 1 to 0\n");
+                    //printf("[DATA] From 1 to 0\n");
                     //nodeState[0] = 0;
                     dataSend();
 
@@ -176,7 +176,7 @@ int main(void)
                         && ACTUAL_NODE == 2)
                 {
                     //Send data from 2 to 1
-                    printf("[DATA] From 2 to 1\n");
+                    //printf("[DATA] From 2 to 1\n");
                     //nodeState[1] = 0;
                     dataSend();
 
