@@ -48,14 +48,13 @@ void setTimers()
 {
     //Timer A0_0 ---- ENERGY UPDATE
     TA0CCTL0 = CCIE; // enable capture control interupt
-    //Set timer speed at 62.5 kHz, min speed for CLK at 16 MHz
     TA0CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /1 divider
     TA0CCR0 = 0; // set interupt value
     TA0CCTL0 &= 0x10; // set compare mode
 
     //Timer A1_0
     TA1CCTL0 = CCIE; // enable capture control interupt
-    TA1CTL = TASSEL_1 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
+    TA1CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
     TA1CCR0 = 0; // set interupt value
     TA1CCTL0 &= 0x10; // set compare mode
 

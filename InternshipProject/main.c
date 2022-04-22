@@ -36,7 +36,7 @@
 #define OOK_NODE1 25
 #define OOK_NODE2 35
 #define TIMEOUT   50
-#define DATA_TX_TIME 65000
+#define DATA_TX_TIME 400
 
 //Array to store burstLength of other nodes
 int nodeState[NODES];
@@ -49,8 +49,6 @@ int timerA2Value = 0;
 int burstTimer = 0;
 
 int frequency = 0;
-
-//#define DATA_TX_TIME        50000   // data transmission time
 
 typedef enum
 {
@@ -79,14 +77,16 @@ int main(void)
     initBoard();
     //__delay_cycles(60);
     setBoardFrequency();
-    __delay_cycles(60);
+    //__delay_cycles(60); //Already present in BoarLib.c
     UARTInit();
     setTimers();
     //printf("End init\n");
+    message = "EI ";
+    UART_TXData(message);
 
     pinDeclaration();
 
-    nodeState[0] = 100;
+    nodeState[0] = 100; //init value for node[0] burstLength
 
     energy_count_limit = (ENERGY_CHANGE / 2)
             + (rand() % (ENERGY_CHANGE / 2 + 1));
@@ -102,6 +102,8 @@ int main(void)
     //----------------------------- TODO -------------------------
     TA4CCR0 = 250;
 
+    //TA1CCR0 = DATA_TX_TIME; // set end value of timer
+
     while (1)
     {
         //select burst
@@ -116,7 +118,7 @@ int main(void)
         }
 
         //custom values for other nodes for testing goal
-        //nodeState[1] = MIDDLE_BURST;
+        nodeState[1] = MIDDLE_BURST;
         //nodeState[2] = MIDDLE_BURST;
 
         if (nodeStatus != BURST_RX)
@@ -194,11 +196,13 @@ int main(void)
 void dataSend()
 {
     TA1CCR0 = 0; //Stop timer 1
-    TA1CCR0 = DATA_TX_TIME; //Start timer 1
+    TA1CCR0 = DATA_TX_TIME; // set end value of timer
 
     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
     energyLevel = energyLevel - ENERGY_CONSUMED_TX;
     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
+    message = "SD ";
+    UART_TXData(message);
     dataStatus = DATA_TX;
     nodeStatus = BURST_WAIT;
 }
@@ -207,7 +211,7 @@ void dataSend()
 //               ISR
 //*************************************
 
-//HANDLER INTERRUPT TIMER A0
+//HANDLER ENERGY GENERATION Timer
 #pragma vector = TIMER0_A0_VECTOR
 __interrupt void T0A0_ISR(void)
 {
@@ -231,6 +235,7 @@ __interrupt void T0A0_ISR(void)
 #pragma vector = TIMER1_A0_VECTOR
 __interrupt void T1A0_ISR(void)
 {
+
     //Timer ausiliario
     //Reached timeout for burst reception (no more pulse on the pin)
     /* if ((nodeStatus == BURST_RX) && (dataStatus = DATA_RX))
@@ -245,8 +250,8 @@ __interrupt void T1A0_ISR(void)
      frequency = (frequency / burstTimer);
      // printf("FREQUENCYBURSTTIMER --> %d\n", burstTimer);
      // printf("TIMER--> %d\n", timerA2Value);
-     printf("FREQUENCY--> %d\n", frequency);
-     printf("COUNT--> %d\n", count);
+     //printf("FREQUENCY--> %d\n", frequency);
+     //printf("COUNT--> %d\n", count);
      //count = 0;
      if ((frequency == OOK_NODE1) || ((frequency <= OOK_NODE1 + 5))
      || (frequency >= (OOK_NODE1 - 5)))
@@ -286,7 +291,7 @@ __interrupt void T1A0_ISR(void)
      }*/
     if (dataStatus == DATA_TX)
     {
-        printf("[DATA_SEND] Data Sent\n");
+        //printf("[DATA_SEND] Data Sent\n");
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN2);
         dataStatus = DATA_WAIT;
         TA1CCR0 = 0; //Stop timer A1
@@ -299,44 +304,56 @@ __interrupt void T1A0_ISR(void)
     {
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
-        message = "EDRX ";
-        UART_TXData(message);
         dataStatus = DATA_WAIT;
+        message = "EDR ";
+        TA1CCR0 = 0; //Stop timer A1
+        UART_TXData(message);
     }
+
 }
 
 //Timer BURST REPETITION
 #pragma vector = TIMER4_A0_VECTOR
 __interrupt void T4A0_ISR(void)
 {
-    TB0CCR0 = 0; //Stop timer B0
-    sendPulses = 0;
-    nodeStatus = BURST_TX;
-    //printf("SendBurst\n");
-    //printf("[BURST] EnergyLevel --> %d\n", energyLevel);
-    TB0CCR0 = (2000 / OOK_NODE0);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+    if (dataStatus != DATA_TX)
+    {
+        TB0CCR0 = 0; //Stop timer B0
+        sendPulses = 0;
+        nodeStatus = BURST_TX;
+        //printf("SendBurst\n");
+        //printf("[BURST] EnergyLevel --> %d\n", energyLevel);
+        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+        TB0CCR0 = (2000 / OOK_NODE0);
+    }
+
 }
 
+//-------------------------- EDIT IF BURST TX HAS PROBLEM ------------------------------ TODO
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void T0B0_ISR(void)
 {
-    GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
-    //__delay_cycles(100000);
-    //printf("PULSES SEND --> %d\n", sendPulses);
-    sendPulses++;
+    if (sendPulses < nodeState[0] * 2)
+    {
+        GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        //__delay_cycles(100000);
+        //printf("PULSES SEND --> %d\n", sendPulses);
+        sendPulses++;
+    }
+
     if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
     {
 
         TB0CCR0 = 0; //Stop timer
         //sprintf(message, "EBTX-%d ", sendPulses);
-        message = "EBTX ";
+        message = "BT ";
         //printf("%s\n", message);
         UART_TXData(message);
         sendPulses = 0;
         //printf("Fine invio burst\n");
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
-        //GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
         nodeStatus = BURST_WAIT;
         //printf("END PULSES SEND\n");
     }
@@ -361,7 +378,7 @@ __interrupt void P3_ISR(void)
                 {
                     TA2CCR0 = 65535; // Start timer to count delay for obtain node frequency
                     //printf("[BURST_RX] count --> %d\n", count);
-                    TA1CCR0 = 0; //Stop timer A1
+                    TA1CCR0 = 0;            //Stop timer A1
                     TA1CCR0 = TIMEOUT;
                 }
 
@@ -370,9 +387,9 @@ __interrupt void P3_ISR(void)
                     timerA2Value = TA2R; //Store value of timer
                     //TA2R = 0;
                     //printf("[BURST_REC] --> %d\n", timerA2Value);
-                    TA2CCR0 = 0; // Stop timer used to calculate node frequency
+                    TA2CCR0 = 0;  // Stop timer used to calculate node frequency
                     burstTimer = count;
-                    TA1CCR0 = 0; //Stop timer A1
+                    TA1CCR0 = 0;            //Stop timer A1
                     TA1CCR0 = TIMEOUT;
                 }
                 count++;
@@ -382,14 +399,14 @@ __interrupt void P3_ISR(void)
             }
         }
 
-        //Clear interrupt flag
+//Clear interrupt flag
         P3IFG &= ~BIT1;
 
     }
 
     if (P3IFG & BIT0)
     {
-        //printf("[DATA_REC] BEFORE -- EnergyLevel --> %d\n", energyLevel);
+//printf("[DATA_REC] BEFORE -- EnergyLevel --> %d\n", energyLevel);
         if ((energyLevel == ENERGY_CONSUMED_RX)
                 || (energyLevel > ENERGY_CONSUMED_RX))
         {
@@ -399,7 +416,7 @@ __interrupt void P3_ISR(void)
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
             energyLevel = energyLevel - ENERGY_CONSUMED_RX;
-            message = "IDRX ";
+            message = "IDR ";
             UART_TXData(message);
             //printf("[DATA_REC] AFTER -- EnergyLevel --> %d\n", energyLevel);
         }
@@ -416,7 +433,7 @@ __interrupt void P3_ISR(void)
 #pragma vector = TIMER2_A0_VECTOR
 __interrupt void T2A0_ISR(void)
 {
-//TAxR
+    //TAxR
     //Need to implement this section of code otherwise when timer reach end value
     //app crash
 }
