@@ -228,7 +228,7 @@ __interrupt void T1A0_ISR(void)
         TA1CCR0 = 0; //Stop timer A1
         TA2CCR0 = 0; // Stop timer used to calculate node frequency, should be already stopped
         TA2R = 0;
-        //frequency = (250 * timerA2Value); //Perchè avevo inserito questa linea? Debug per capire se fosse effettivamente zero? Hard to say, only God can know
+        frequency = (500*timerA2Value);
         frequency = (frequency / COUNT_FREQ_ID);
         itoa(count, message, 10);
         UART_TXData(message);
