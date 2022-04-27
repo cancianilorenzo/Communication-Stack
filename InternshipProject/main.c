@@ -1,10 +1,12 @@
 /*
  Possibile controllare frequenza scheda????????
- Secondo TRAP, riceve solo se energia massima?
+ Secondo TRAP, riceve il livello d'energia solo se l'energia del nodo è massima?
  ----TODO
  Initialize ALL PORTS --> unused port to LOW to avoid energy consumption
  Fix DATA_TX Timer (65ms impossibile with the actual MCLK)
- At 30kHz about 0.017s to send the (256*2) burst
+ At 30kHz about 0.017s to send the 256 signals (256*2 toggles)
+
+ Rivedere logica invio dati
  */
 
 #include <msp430.h>
@@ -207,7 +209,7 @@ __interrupt void T0A0_ISR(void)
         energy_count++;
 
         energy_step = 120 + energy_step;
-        //printf("[UPDATE] EnergyLevel --> %d\n", energyLevel);
+
         message = "UE ";
         UART_TXData(message);
     }
@@ -224,17 +226,10 @@ __interrupt void T1A0_ISR(void)
     {
         nodeStatus = BURST_WAIT;
         TA1CCR0 = 0; //Stop timer A1
-        TA2CCR0 = 0; // Stop timer used to calculate node frequency
+        TA2CCR0 = 0; // Stop timer used to calculate node frequency, should be already stopped
         TA2R = 0;
-        //frequency = 0;
         //frequency = (250 * timerA2Value); //Perchè avevo inserito questa linea? Debug per capire se fosse effettivamente zero? Hard to say, only God can know
         frequency = (frequency / COUNT_FREQ_ID);
-        // printf("FREQUENCYBURSTTIMER --> %d\n", burstTimer);
-        // printf("TIMER--> %d\n", timerA2Value);
-
-        //printf("FREQUENCY--> %d\n", frequency);
-        //printf("COUNT--> %d\n", count);
-        //count = 0;
         itoa(count, message, 10);
         UART_TXData(message);
         message = "--";
@@ -318,7 +313,6 @@ __interrupt void P3_ISR(void)
                 && (dataStatus == DATA_WAIT))
         {
 
-            //printf("BURST_RX\n");
             {
                 nodeStatus = BURST_RX;
                 if (count == 0)
@@ -337,7 +331,7 @@ __interrupt void P3_ISR(void)
                 }
                 count++;
                 TA1CCR0 = 0; //Stop timer A1
-                TA1CCR0 = TIMEOUT; //restart timer
+                TA1CCR0 = TIMEOUT; //restart timer to avoid glitches
 
             }
         }
@@ -346,8 +340,6 @@ __interrupt void P3_ISR(void)
         P3IFG &= ~BIT1;
 
     }
-
-    //Should work
 
     if (P3IFG & BIT0)
     {
