@@ -1,4 +1,7 @@
 /*
+ *
+ * TA1CTL &= ~MC_3; //Stop timer
+ *
  ----TODO
  Initialize ALL PORTS --> unused port to LOW to avoid energy consumption
  Fix DATA_TX Timer (65ms impossibile with the actual MCLK)
@@ -100,7 +103,7 @@ int main(void)
     //start burst timer A4
     TA4CCR0 = 0; //Reset timer, can be removed
     //----------------------------- TODO -------------------------
-    TA4CCR0 = 250;
+    TA4CCR0 = 250; //250 per 1 sec
 
     //TA1CCR0 = DATA_TX_TIME; // set end value of timer
 
@@ -324,7 +327,7 @@ __interrupt void T4A0_ISR(void)
         //printf("SendBurst\n");
         //printf("[BURST] EnergyLevel --> %d\n", energyLevel);
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-        GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+        //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
         TB0CCR0 = (2000 / OOK_NODE0);
     }
 
@@ -334,28 +337,20 @@ __interrupt void T4A0_ISR(void)
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void T0B0_ISR(void)
 {
-    if (sendPulses < nodeState[0] * 2)
-    {
-        GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
-        //__delay_cycles(100000);
-        //printf("PULSES SEND --> %d\n", sendPulses);
-        sendPulses++;
-    }
-
     if (sendPulses == (nodeState[0] * 2)) //ON-OFF PIN --> 2 cycles
     {
-
         TB0CCR0 = 0; //Stop timer
-        //sprintf(message, "EBTX-%d ", sendPulses);
-        message = "BT ";
-        //printf("%s\n", message);
-        UART_TXData(message);
-        sendPulses = 0;
-        //printf("Fine invio burst\n");
-        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        message = "BT ";
+        UART_TXData(message);
+        //sendPulses = 0;
         nodeStatus = BURST_WAIT;
-        //printf("END PULSES SEND\n");
+    }
+
+    if (sendPulses != (nodeState[0] * 2))
+    {
+        GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        sendPulses++;
     }
 
 }

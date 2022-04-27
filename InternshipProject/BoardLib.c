@@ -117,7 +117,7 @@ void pinDeclaration()
     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
 
     //put low pin of burst TX --> probably this is the problem that invert the logic of our code
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+    //GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
 }
 
 void UART_TXData(char* c)
