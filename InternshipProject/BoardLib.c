@@ -46,7 +46,7 @@ void UARTInit()
 
 void setTimers()
 {
-    //Timer A0_0 ---- ENERGY UPDATE
+    //Timer A0_0 ---- ENERGY UPDATE ---- WORKS
     TA0CCTL0 = CCIE; // enable capture control interupt
     TA0CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /1 divider
     TA0CCR0 = 0; // set interupt value
@@ -65,13 +65,13 @@ void setTimers()
     TA2CCR0 = 0; // set interupt value
     TA2CCTL0 &= 0x10; // set compare mode
 
-    //Timer A4_0 ---- BURST REPETITION
+    //Timer A4_0 ---- BURST REPETITION ---- WORKS
     TA4CCTL0 = CCIE; // enable capture control interupt
     TA4CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /8 divider
     TA4CCR0 = 0; // set interupt value
     TA4CCTL0 &= 0x10; // set compare mode
 
-    //Timer B0_0 ---- PULSES SEND
+    //Timer B0_0 ---- PULSES SEND ---- WORKS
     TB0CCTL0 = CCIE; // enable capture control interupt
     TB0CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
     TB0CCR0 = 0; // set interupt value
@@ -130,3 +130,28 @@ void UART_TXData(char* c)
                 for(i = 0; i < 5000; i++);//delay
             }
 }
+
+void itoa(long unsigned int value, char* result, int base)
+    {
+      // check that the base if valid
+      if (base < 2 || base > 36) { *result = '\0';}
+
+      char* ptr = result, *ptr1 = result, tmp_char;
+      int tmp_value;
+
+      do {
+        tmp_value = value;
+        value /= base;
+        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
+      } while ( value );
+
+      // Apply negative sign
+      if (tmp_value < 0) *ptr++ = '-';
+      *ptr-- = '\0';
+      while(ptr1 < ptr) {
+        tmp_char = *ptr;
+        *ptr--= *ptr1;
+        *ptr1++ = tmp_char;
+      }
+
+    }

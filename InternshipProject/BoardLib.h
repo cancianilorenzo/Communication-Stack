@@ -13,5 +13,6 @@ void setBoardFrequency();
 void pinDeclaration();
 void UARTInit();
 void UART_TXData();
+void itoa();
 
 #endif
