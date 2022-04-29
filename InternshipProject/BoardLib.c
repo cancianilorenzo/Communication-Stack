@@ -8,6 +8,7 @@
 #include <msp430.h>
 #include <msp430.h>
 #include "driverlib.h"
+#include <stdlib.h>
 
 void initBoard()
 {
@@ -54,14 +55,14 @@ void setTimers()
 
     //Timer A1_0
     TA1CCTL0 = CCIE; // enable capture control interupt
-    TA1CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
+    TA1CTL = TASSEL_1 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider ---> TODO SET TO TASSEL__2
     TA1CCR0 = 0; // set interupt value
     TA1CCTL0 &= 0x10; // set compare mode
 
     //Timer A2_0 ---- NODE IDENTIFICATION
     //---TODO----probabilmente non devo utilizzare gli interrupt
     TA2CCTL0 = CCIE; // enable capture control interupt
-    TA2CTL = TASSEL_1 + MC_1 + ID_1; // Use ACLK in up mode, /1 divider --> 500kHz
+    TA2CTL = TASSEL_1 + MC_1 + ID_3; // Use ACLK in up mode, /1 divider --> 62.5kHz
     TA2CCR0 = 0; // set interupt value
     TA2CCTL0 &= 0x10; // set compare mode
 
@@ -120,7 +121,19 @@ void pinDeclaration()
     //GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
 }
 
-void UART_TXData(char* c)
+//NEW UART NEED TEST ------------------------------- TODO
+/*void UART_TXData(uint8_t* c, size_t size)
+{
+    int position;
+    for (position = 0; position < size; position++)
+        {
+            UCA0TXBUF = c[position];
+           // for(i = 0; i < 5000; i++);//delay
+            while(UCBUSY);
+        }
+}*/
+
+void UART_TXData(uint8_t* c)
 {
     int position;
     int i;
