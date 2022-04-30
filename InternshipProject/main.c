@@ -39,7 +39,7 @@
 #define OOK_NODE0 15
 #define OOK_NODE1 25
 #define OOK_NODE2 35
-#define TIMEOUT   5
+#define TIMEOUT   7
 #define DATA_TX_TIME 400
 
 #define COUNT_FREQ_ID 5
@@ -87,7 +87,7 @@ int main(void)
     UARTInit();
     setTimers();
     sprintf(message, "EI ");
-    UART_TXData(message);
+    UART_TXData(message, strlen(message));
     //UART_TXData((uint8_t*)message, strlen(message));
 
     /*
@@ -95,8 +95,9 @@ int main(void)
      uint16_t test = 256;
      UART_TXData((uint8_t*)&test, sizeof(test));
      */
-    sprintf(message, "%d ", count);
-    UART_TXData(message);
+    //sprintf(message, "%d ", CS_getMCLK());
+    //UART_TXData(message);
+    printf("%d\n", CS_getSMCLK());
     pinDeclaration();
 
     nodeState[0] = 100; //init value for node[0] burstLength
@@ -197,7 +198,7 @@ void dataSend()
     energyLevel = energyLevel - ENERGY_CONSUMED_TX;
     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
     sprintf(message, "SD ");
-    UART_TXData(message);
+    UART_TXData(message, strlen(message));
     dataStatus = DATA_TX;
     nodeStatus = BURST_WAIT;
 }
@@ -237,10 +238,17 @@ __interrupt void T1A0_ISR(void)
     //Reached timeout for burst reception (no more pulse on the pin)
     if ((nodeStatus == BURST_RX) && (dataStatus != DATA_RX))
     {
+        //nodeStatus = BURST_TX; //To avoid entering the handler -------------------- CHANGE TODO
         TA1CCR0 = 0; //Stop timer A1
         sprintf(message, "%d ", count);
-        UART_TXData(message);
+        UART_TXData(message, strlen(message));
+        if (count > (64 - BURST_GUARD))
+        {
+            sprintf(message, "T%d ", timerA2Value);
+            UART_TXData(message, strlen(message));
+        }
         count = 0;
+        TA2R = 0;
         nodeStatus = BURST_WAIT;
 
         /*
@@ -274,7 +282,7 @@ __interrupt void T1A0_ISR(void)
         dataStatus = DATA_WAIT;
         sprintf(message, "EDR ");
         TA1CCR0 = 0; //Stop timer A1
-        UART_TXData(message);
+        UART_TXData(message, strlen(message));
     }
 
 }
@@ -345,8 +353,8 @@ __interrupt void P4_ISR(void)
                 if (count == 0)
                 {
                     TA2CCR0 = 65535; // Start timer to count delay for obtain node frequency
-                    TA1CCR0 = 0;            //Stop timer A1
-                    TA1CCR0 = TIMEOUT;
+                    //TA1CCR0 = 0;            //Stop timer A1
+                    //TA1CCR0 = TIMEOUT;
                     //sprintf(message, "%d ", count);
                     //UART_TXData(message);
                 }
@@ -355,13 +363,13 @@ __interrupt void P4_ISR(void)
                 {
                     timerA2Value = TA2R; //Store value of timer
                     TA2CCR0 = 0;  // Stop timer used to calculate node frequency
-                    TA1CCR0 = 0;            //Stop timer A1
-                    TA1CCR0 = TIMEOUT;
+                    //TA1CCR0 = 0;            //Stop timer A1
+                    //TA1CCR0 = TIMEOUT;
                     //sprintf(message, "%d ", count);
                     //UART_TXData(message);
                 }
                 count++;
-                TA1CCR0 = 0; //Stop timer A1
+                //TA1CCR0 = 0; //Stop timer A1
                 TA1CCR0 = TIMEOUT; //restart timer to avoid glitches
 
             }
@@ -384,12 +392,12 @@ __interrupt void P4_ISR(void)
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
             energyLevel = energyLevel - ENERGY_CONSUMED_RX;
             sprintf(message, "DR ");
-            UART_TXData(message);
+            UART_TXData(message, strlen(message));
         }
         else
         {
             sprintf(message, "EDR "); //Error data reception
-            UART_TXData(message);
+            UART_TXData(message, strlen(message));
         }
         P3IFG &= ~BIT1;
 
