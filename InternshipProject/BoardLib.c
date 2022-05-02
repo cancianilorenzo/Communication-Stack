@@ -55,14 +55,14 @@ void setTimers()
 
     //Timer A1_0
     TA1CCTL0 = CCIE; // enable capture control interupt
-    TA1CTL = TASSEL_1 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider ---> TODO SET TO TASSEL__2
+    TA1CTL = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider ---> TODO SET TO TASSEL__2
     TA1CCR0 = 0; // set interupt value
     TA1CCTL0 &= 0x10; // set compare mode
 
     //Timer A2_0 ---- NODE IDENTIFICATION
     //---TODO----probabilmente non devo utilizzare gli interrupt
     TA2CCTL0 = CCIE; // enable capture control interupt
-    TA2CTL = TASSEL_2 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider --> 2MHz
+    TA2CTL = TASSEL_2 + MC_1 + ID_0; // Use SMCLK in up mode, /8 divider --> 2MHz ------------- set to 62.5khz
     TA2CCR0 = 0; // set interupt value
     TA2CCTL0 &= 0x10; // set compare mode
 
@@ -105,10 +105,10 @@ void setBoardFrequency()
 
 void pinDeclaration()
 {
-    //3.0 DATA RX----3.1 BURST RX
-    P3IES = (BIT0 | BIT1);  // set interrupt on edge select
-    P3IFG = 0;              // clear interrupt flags
-    P3IE = (BIT0 | BIT1);  // set interupt enable on pins
+    //3.1 DATA RX----3.0 BURST RX
+    //P3IES = (BIT0 | BIT1);  // set interrupt on edge select
+    //P3IFG = 0;              // clear interrupt flags
+    //P3IE = (BIT0 | BIT1);  // set interupt enable on pins
 
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
@@ -117,54 +117,32 @@ void pinDeclaration()
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
 
-    //put low pin of burst TX --> probably this is the problem that invert the logic of our code
-    //GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+
+    P3SEL1 &= ~(BIT0 | BIT1);
+    P3SEL1 |= BIT1;
+    P3DIR=BIT1;
 }
 
 //NEW UART NEED TEST ------------------------------- TODO
 /*void UART_TXData(uint8_t* c, size_t size)
-{
-    int position;
-    for (position = 0; position < size; position++)
-        {
-            UCA0TXBUF = c[position];
-           // for(i = 0; i < 5000; i++);//delay
-            while(UCBUSY);
-        }
-}*/
+ {
+ int position;
+ for (position = 0; position < size; position++)
+ {
+ UCA0TXBUF = c[position];
+ // for(i = 0; i < 5000; i++);//delay
+ while(UCBUSY);
+ }
+ }*/
 
-void UART_TXData(uint8_t* c, size_t size)
+void UART_TXData(uint8_t *c, size_t size)
 {
     int position;
     int i;
     for (position = 0; position < size; position++)
-            {
-                UCA0TXBUF = c[position];
-                for(i = 0; i < 5000; i++);//delay
-            }
-}
-
-void itoa(long unsigned int value, char* result, int base)
     {
-      // check that the base if valid
-      if (base < 2 || base > 36) { *result = '\0';}
-
-      char* ptr = result, *ptr1 = result, tmp_char;
-      int tmp_value;
-
-      do {
-        tmp_value = value;
-        value /= base;
-        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
-      } while ( value );
-
-      // Apply negative sign
-      if (tmp_value < 0) *ptr++ = '-';
-      *ptr-- = '\0';
-      while(ptr1 < ptr) {
-        tmp_char = *ptr;
-        *ptr--= *ptr1;
-        *ptr1++ = tmp_char;
-      }
-
+        UCA0TXBUF = c[position];
+        for (i = 0; i < 5000; i++)
+            ;    //delay
     }
+}

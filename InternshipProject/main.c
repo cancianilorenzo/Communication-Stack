@@ -240,12 +240,58 @@ __interrupt void T1A0_ISR(void)
     {
         //nodeStatus = BURST_TX; //To avoid entering the handler -------------------- CHANGE TODO
         TA1CCR0 = 0; //Stop timer A1
-        sprintf(message, "%d ", count);
-        UART_TXData(message, strlen(message));
+
         if (count > (64 - BURST_GUARD))
         {
-            sprintf(message, "T%d ", timerA2Value);
+            sprintf(message, "%d ", count);
             UART_TXData(message, strlen(message));
+            sprintf(message, "T%d ", /*timerA2Value*/TA2R);
+            UART_TXData(message, strlen(message));
+            frequency = ((TA2R*16)/6);
+            sprintf(message, "F%d ", frequency); //---------------------------no, wrong!!!!!!!!!!!! Tomorrow work on it  TODO
+            UART_TXData(message, strlen(message));
+
+            /*
+                if ((frequency == OOK_NODE1) || ((frequency <= OOK_NODE1 + 5))
+                || (frequency >= (OOK_NODE1 - 5)))
+        {
+            if (count > ((LONG_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = LONG_BURST;
+                break;
+            }
+            else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = MIDDLE_BURST;
+                break;
+            }
+            else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = SHORT_BURST;
+                break;
+            }
+        }
+        else if ((frequency == OOK_NODE2) || ((frequency <= OOK_NODE2 + 5))
+                || (frequency >= (OOK_NODE2 - 5)))
+        {
+            if (count > ((LONG_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = LONG_BURST;
+                break;
+            }
+            else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = MIDDLE_BURST;
+                break;
+            }
+            else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
+            {
+                nodeState[1] = SHORT_BURST;
+                break;
+            }
+        }
+             */
+
         }
         count = 0;
         TA2R = 0;
@@ -352,21 +398,21 @@ __interrupt void P4_ISR(void)
                 nodeStatus = BURST_RX;
                 if (count == 0)
                 {
-                    TA2CCR0 = 65535; // Start timer to count delay for obtain node frequency
-                    //TA1CCR0 = 0;            //Stop timer A1
-                    //TA1CCR0 = TIMEOUT;
-                    //sprintf(message, "%d ", count);
-                    //UART_TXData(message);
+                    TA2CTL = TASSEL_2 + MC_2 + ID_0;
+                    //TA2CCR0 = 65535; // Start timer to count delay for obtain node frequencyù
+                    TA1CCR0 = TIMEOUT; //restart timer to avoid glitches
                 }
 
                 else if (count == COUNT_FREQ_ID)
                 {
-                    timerA2Value = TA2R; //Store value of timer
-                    TA2CCR0 = 0;  // Stop timer used to calculate node frequency
+                    //timerA2Value = TA2R; //Store value of timer
+                    //TA2CCR0 = 0;  // Stop timer used to calculate node frequency
                     //TA1CCR0 = 0;            //Stop timer A1
                     //TA1CCR0 = TIMEOUT;
                     //sprintf(message, "%d ", count);
                     //UART_TXData(message);
+                    TA2CTL = TASSEL_2 + MC_0 + ID_0;
+                    TA1CCR0 = TIMEOUT; //restart timer to avoid glitches
                 }
                 count++;
                 //TA1CCR0 = 0; //Stop timer A1
