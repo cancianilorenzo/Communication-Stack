@@ -55,16 +55,21 @@ void setTimers()
 
     //Timer A1_0
     TA1CCTL0 = CCIE; // enable capture control interupt
-    TA1CTL = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider ---> TODO SET TO TASSEL__2
+    TA1CTL = TASSEL_2 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider ---> TODO SET TO TASSEL__2
     TA1CCR0 = 0; // set interupt value
     TA1CCTL0 &= 0x10; // set compare mode
 
     //Timer A2_0 ---- NODE IDENTIFICATION
-    //---TODO----probabilmente non devo utilizzare gli interrupt
     TA2CCTL0 = CCIE; // enable capture control interupt
     TA2CTL = TASSEL_2 + MC_1 + ID_0; // Use SMCLK in up mode, /8 divider --> 2MHz ------------- set to 62.5khz
     TA2CCR0 = 0; // set interupt value
     TA2CCTL0 &= 0x10; // set compare mode
+
+    //Timer A3_0 ------ TIMEOUT BURST RECEPTION
+    TA3CCTL0 = CCIE; // enable capture control interupt
+    TA3CTL = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider
+    TA3CCR0 = 0; // set interupt value
+    TA3CCTL0 &= 0x10; // set compare mode
 
     //Timer A4_0 ---- BURST REPETITION ---- WORKS
     TA4CCTL0 = CCIE; // enable capture control interupt
@@ -77,6 +82,7 @@ void setTimers()
     TB0CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
     TB0CCR0 = 0; // set interupt value
     TB0CCTL0 &= 0x10; // set compare mode
+
 }
 
 void setBoardFrequency()
@@ -106,9 +112,9 @@ void setBoardFrequency()
 void pinDeclaration()
 {
     //3.1 DATA RX----3.0 BURST RX
-    //P3IES = (BIT0 | BIT1);  // set interrupt on edge select
-    //P3IFG = 0;              // clear interrupt flags
-    //P3IE = (BIT0 | BIT1);  // set interupt enable on pins
+    P3IES = (BIT0 | BIT1);  // set interrupt on edge select
+    P3IFG = 0;              // clear interrupt flags
+    P3IE = (BIT0 | BIT1);  // set interupt enable on pins
 
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
@@ -117,10 +123,6 @@ void pinDeclaration()
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
 
-
-    P3SEL1 &= ~(BIT0 | BIT1);
-    P3SEL1 |= BIT1;
-    P3DIR=BIT1;
 }
 
 //NEW UART NEED TEST ------------------------------- TODO
