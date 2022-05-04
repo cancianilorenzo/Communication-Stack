@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define ACTUAL_NODE OOK_NODE0
 
@@ -40,7 +41,7 @@
 #define TIMEOUT   7
 #define DATA_TX_TIME 400
 
-#define COUNT_FREQ_ID 20
+#define COUNT_FREQ_ID 5
 #define MSG_SIZE 64
 
 //Array to store burstLength of other nodes
@@ -99,7 +100,7 @@ int main(void)
     //start burst timer A4
     TA4CCR0 = 0; //Reset timer, can be removed
     //----------------------------- TODO -------------------------
-    TA4CCR0 = 250; //250 per 1 sec
+    TA4CCR0 = 500; //250 per 1 sec
 
     //TA1CCR0 = DATA_TX_TIME; // set end value of timer
 
@@ -163,8 +164,8 @@ __interrupt void T0A0_ISR(void)
 
         energy_step = 120 + energy_step;
 
-        sprintf(message, "UE ");
-        UART_TXData(message, strlen(message));
+//        sprintf(message, "UE ");
+//        UART_TXData(message, strlen(message));
     }
 
 }
@@ -208,8 +209,8 @@ __interrupt void T4A0_ISR(void)
         nodeStatus = BURST_TX;
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
         TB0CCR0 = (2000 / ACTUAL_NODE);
-        sprintf(message, "BTX ");
-        UART_TXData(message, strlen(message));
+//        sprintf(message, "BTX ");
+//        UART_TXData(message, strlen(message));
     }
 
 }
@@ -239,23 +240,16 @@ __interrupt void T3A0_ISR(void)
 {
     if (count > (64 - BURST_GUARD))
     {
-        sprintf(message, "BRX "); //Entra due volte qua.... TODO
+        sprintf(message, "C%d ", count);
         UART_TXData(message, strlen(message));
-        sprintf(message, "%d ", count);
+        frequency = (float) 16000 / ((float) TA2R / (float) 6);
+        sprintf(message, "F%.2f ", floor(frequency + 0.5));
         UART_TXData(message, strlen(message));
-        //sprintf(message, "%.2f ", TA2R);
-        //UART_TXData(message, strlen(message));
-        frequency = 16000.000 / ((float) TA2R / (float) 21);
-        //sprintf(message, "%.2f ", frequency);
-        //UART_TXData(message, strlen(message));
-        frequency = frequency * 1000;
-        //sprintf(message, "%.2f ", frequency);
-        //UART_TXData(message, strlen(message));
-        printf("%.2f ", frequency);
 
     }
     count = 0;
     TA2R = 0;
+    frequency = 0.000;
     nodeStatus = BURST_WAIT;
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -274,13 +268,13 @@ __interrupt void P3_ISR(void)
                 nodeStatus = BURST_RX;
                 if (count == 0)
                 {
-                    TA2CTL = TASSEL_2 + MC_2 + ID_0; //change timer mode to avoid set offset ----- TODO explain better AND NEED TEST
+                    TA2CTL = TASSEL_2 + MC_2 + ID_0; //change timer mode to avoid set offset
                     //TA3CCR0 = TIMEOUT; //restart timer to avoid glitches
                 }
 
                 else if (count == COUNT_FREQ_ID)
                 {
-                    TA2CTL = TASSEL_2 + MC_0 + ID_0;
+                    TA2CTL = TASSEL_2 + MC_0 + ID_0; //Stop timer
                     //TA3CCR0 = TIMEOUT; //restart timer to avoid glitches
                 }
                 count++;
@@ -322,9 +316,6 @@ __interrupt void P3_ISR(void)
 #pragma vector = TIMER2_A0_VECTOR
 __interrupt void T2A0_ISR(void)
 {
-    //TAxR
-    //Need to implement this section of code otherwise when timer reach end value ----------- TODO check
-    //app crash
 }
 
 //---------------------------------------------------------------------dataSend() Function---------------------------------------------------------------------------------------//
