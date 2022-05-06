@@ -51,6 +51,7 @@ int sendPulses;
 char message[MSG_SIZE];
 
 int count = 0; //pulses incoming
+int timerValue = 0;
 
 float frequency;
 
@@ -101,6 +102,7 @@ int main(void)
     TA4CCR0 = 0; //Reset timer, can be removed
     //----------------------------- TODO -------------------------
     TA4CCR0 = 500; //250 per 1 sec
+
 
     //TA1CCR0 = DATA_TX_TIME; // set end value of timer
 
@@ -208,7 +210,7 @@ __interrupt void T4A0_ISR(void)
         sendPulses = 0;
         nodeStatus = BURST_TX;
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-        TB0CCR0 = (2000 / ACTUAL_NODE);
+        TB0CCR0 = (500 / ACTUAL_NODE); //--------------------------------------EDIT TODO
 //        sprintf(message, "BTX ");
 //        UART_TXData(message, strlen(message));
     }
@@ -238,18 +240,27 @@ __interrupt void T0B0_ISR(void)
 #pragma vector = TIMER3_A0_VECTOR
 __interrupt void T3A0_ISR(void)
 {
+    sprintf(message, "BRX ");
+    UART_TXData(message, strlen(message));
+    TA2CTL = TASSEL_1 + MC_0 + ID_0; //Stop timer
+    TA3CTL = TASSEL_1 + MC_0 + ID_3; //Stop timer
     if (count > (64 - BURST_GUARD))
     {
+
         sprintf(message, "C%d ", count);
         UART_TXData(message, strlen(message));
-        frequency = (float) 16000 / ((float) TA2R / (float) 6);
+//        sprintf(message, "T%d ", timerValue);
+//        UART_TXData(message, strlen(message));
+
+        frequency = (float) 500 / ((float) timerValue / (float) count);
         sprintf(message, "F%.2f ", floor(frequency + 0.5));
         UART_TXData(message, strlen(message));
 
     }
     count = 0;
     TA2R = 0;
-    frequency = 0.000;
+    frequency = 0;
+    timerValue = 0;
     nodeStatus = BURST_WAIT;
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -263,18 +274,15 @@ __interrupt void P3_ISR(void)
         if (/*(energyLevel == MAX_ENERGY) &&*/(nodeStatus != BURST_TX)
                 && (dataStatus == DATA_WAIT))
         {
+//            ogni volta salvo il valore del registro TA2R e lo affido ad una variabile ausiliaria
+            timerValue = TA2R;
 
             {
                 nodeStatus = BURST_RX;
                 if (count == 0)
                 {
-                    TA2CTL = TASSEL_2 + MC_2 + ID_0; //change timer mode to avoid set offset
-                    //TA3CCR0 = TIMEOUT; //restart timer to avoid glitches
-                }
-
-                else if (count == COUNT_FREQ_ID)
-                {
-                    TA2CTL = TASSEL_2 + MC_0 + ID_0; //Stop timer
+                    TA2CTL = TASSEL_1 + MC_2 + ID_0; //change timer mode to avoid set offset
+                    TA3CTL = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider
                     //TA3CCR0 = TIMEOUT; //restart timer to avoid glitches
                 }
                 count++;
@@ -316,6 +324,8 @@ __interrupt void P3_ISR(void)
 #pragma vector = TIMER2_A0_VECTOR
 __interrupt void T2A0_ISR(void)
 {
+    sprintf(message, "TIM2 ");
+    UART_TXData(message, strlen(message));
 }
 
 //---------------------------------------------------------------------dataSend() Function---------------------------------------------------------------------------------------//
