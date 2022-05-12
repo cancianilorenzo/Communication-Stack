@@ -101,7 +101,7 @@ int main(void)
     //start burst timer A4
     TA4CCR0 = 0; //Reset timer, can be removed
     //----------------------------- TODO -------------------------
-    TA4CCR0 = 500; //250 per 1 sec
+    TA4CCR0 = 250; //250 per 1 sec
 
 
     //TA1CCR0 = DATA_TX_TIME; // set end value of timer
@@ -210,7 +210,7 @@ __interrupt void T4A0_ISR(void)
         sendPulses = 0;
         nodeStatus = BURST_TX;
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-        TB0CCR0 = (500 / ACTUAL_NODE); //--------------------------------------EDIT TODO
+        TB0CCR0 = (2000 / ACTUAL_NODE);
 //        sprintf(message, "BTX ");
 //        UART_TXData(message, strlen(message));
     }
@@ -240,10 +240,12 @@ __interrupt void T0B0_ISR(void)
 #pragma vector = TIMER3_A0_VECTOR
 __interrupt void T3A0_ISR(void)
 {
+    TA3CCR0 = 0; //Stop timer A1
+    TA3CTL = TASSEL_1 + MC_0 + ID_3; //Stop timer
+    TA2CTL = TASSEL_1 + MC_0 + ID_0; //Stop timer
     sprintf(message, "BRX ");
     UART_TXData(message, strlen(message));
-    TA2CTL = TASSEL_1 + MC_0 + ID_0; //Stop timer
-    TA3CTL = TASSEL_1 + MC_0 + ID_3; //Stop timer
+
     if (count > (64 - BURST_GUARD))
     {
 
