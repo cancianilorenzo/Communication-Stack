@@ -79,6 +79,7 @@ void dataSend(); //function to call when nodes start transimitting data
 
 int main(void)
 {
+
     initBoard();
     //__delay_cycles(60);
     pinDeclaration();
@@ -102,9 +103,6 @@ int main(void)
     TA4CCR0 = 0; //Reset timer, can be removed
     //----------------------------- TODO -------------------------
     TA4CCR0 = 250; //250 per 1 sec
-
-
-    //TA1CCR0 = DATA_TX_TIME; // set end value of timer
 
     while (1)
     {
@@ -210,7 +208,7 @@ __interrupt void T4A0_ISR(void)
         sendPulses = 0;
         nodeStatus = BURST_TX;
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-        TB0CCR0 = (2000 / ACTUAL_NODE);
+        TB0CCR0 = (500 / ACTUAL_NODE);
 //        sprintf(message, "BTX ");
 //        UART_TXData(message, strlen(message));
     }
@@ -240,9 +238,8 @@ __interrupt void T0B0_ISR(void)
 #pragma vector = TIMER3_A0_VECTOR
 __interrupt void T3A0_ISR(void)
 {
-    TA3CCR0 = 0; //Stop timer A1
     TA3CTL = TASSEL_1 + MC_0 + ID_3; //Stop timer
-    TA2CTL = TASSEL_1 + MC_0 + ID_0; //Stop timer
+    TA2CTL = TASSEL_2 + MC_0 + ID_0; //Stop timer
     sprintf(message, "BRX ");
     UART_TXData(message, strlen(message));
 
@@ -251,10 +248,11 @@ __interrupt void T3A0_ISR(void)
 
         sprintf(message, "C%d ", count);
         UART_TXData(message, strlen(message));
-//        sprintf(message, "T%d ", timerValue);
-//        UART_TXData(message, strlen(message));
 
-        frequency = (float) 500 / ((float) timerValue / (float) count);
+        sprintf(message, "T%d ", timerValue);
+        UART_TXData(message, strlen(message));
+
+        frequency = (float) 250 / ((float) timerValue / (float) count);
         sprintf(message, "F%.2f ", floor(frequency + 0.5));
         UART_TXData(message, strlen(message));
 
@@ -276,15 +274,15 @@ __interrupt void P3_ISR(void)
         if (/*(energyLevel == MAX_ENERGY) &&*/(nodeStatus != BURST_TX)
                 && (dataStatus == DATA_WAIT))
         {
-//            ogni volta salvo il valore del registro TA2R e lo affido ad una variabile ausiliaria
+            //            ogni volta salvo il valore del registro TA2R e lo affido ad una variabile ausiliaria
             timerValue = TA2R;
 
             {
                 nodeStatus = BURST_RX;
                 if (count == 0)
                 {
-                    TA2CTL = TASSEL_1 + MC_2 + ID_0; //change timer mode to avoid set offset
-                    TA3CTL = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider
+                    TA2CTL = TASSEL_2 + MC_2 + ID_2; //250khz
+                    TA3CTL = TASSEL_1 + MC_1 + ID_3;
                     //TA3CCR0 = TIMEOUT; //restart timer to avoid glitches
                 }
                 count++;

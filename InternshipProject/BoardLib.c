@@ -38,33 +38,42 @@ void UARTInit()
     // Fractional portion = 0.083
     // User's Guide Table 21-4: UCBRSx = 0x04
     // UCBRFx = int ( (52.083-52)*16) = 1
-    UCA0BRW = 104;                                            // 8000000/16/9600
-    UCA0MCTLW |= UCOS16 | UCBRF_2 | 0xD6;
+    UCA0BRW = 8;                                            // 8000000/16/9600
+    UCA0MCTLW = 0xD600;
     UCA0CTLW0 &= ~UCSWRST;                                 // Initialize eUSCI
 
+
     UCA0IE |= UCRXIE;
+
 }
 
 void setTimers()
 {
+    //OK
     //Timer A0_0 ---- ENERGY UPDATE ---- WORKS
     TA0CCTL0 = CCIE; // enable capture control interupt
     TA0CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /1 divider
     TA0CCR0 = 0; // set interupt value
     TA0CCTL0 &= 0x10; // set compare mode
 
+
+    //TODO cambiare
     //Timer A1_0
     TA1CCTL0 = CCIE; // enable capture control interupt
     TA1CTL = TASSEL_2 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider ---> TODO SET TO TASSEL__2
     TA1CCR0 = 0; // set interupt value
     TA1CCTL0 &= 0x10; // set compare mode
 
+
+    //TODO cambiare
     //Timer A2_0 ---- NODE IDENTIFICATION
     TA2CCTL0 = CCIE; // enable capture control interupt
-    TA2CTL = TASSEL_1 + MC_1 + ID_0; // Use SMCLK in up mode, /8 divider --> 2MHz
-    TA2CCR0 = 0; // set interupt value
+    TA2CTL = TASSEL_2 + MC_1 + ID_1; // Use SMCLK in up mode, /8 divider --> 2MHz
+    //TA2CCR0 = 0; // set interupt value
     TA2CCTL0 &= 0x10; // set compare mode
 
+
+    //TODO cambiare
     //Timer A3_0 ------ TIMEOUT BURST RECEPTION
     TA3CCTL0 = CCIE; // enable capture control interupt
     TA3CTL = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider
@@ -77,6 +86,8 @@ void setTimers()
     TA4CCR0 = 0; // set interupt value
     TA4CCTL0 &= 0x10; // set compare mode
 
+
+    //OK
     //Timer B0_0 ---- PULSES SEND ---- WORKS
     TB0CCTL0 = CCIE; // enable capture control interupt
     TB0CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
@@ -104,7 +115,7 @@ void setBoardFrequency()
 
     // Delay by ~10us to let DCO settle. 60 cycles = 20 cycles buffer + (10us / (1/4MHz))
     __delay_cycles(60);
-    CSCTL3 = DIVA__32 | DIVS__1 | DIVM__1; // Set all dividers to 1 for 16MHz operation NO! ACLK divideb by 32 (16MHz/32 --> 500kHz)
+    CSCTL3 = DIVA__32 | DIVS__16 | DIVM__1; // Set all dividers to 1 for 16MHz operation NO! ACLK divideb by 32 (16MHz/32 --> 500kHz)
     CSCTL0_H = 0; // Lock CS registers                      // Lock CS registers
 
 }
@@ -112,16 +123,28 @@ void setBoardFrequency()
 void pinDeclaration()
 {
     //3.1 DATA RX----3.0 BURST RX
-    P3IES = (BIT0 | BIT1);  // set interrupt on edge select
-    P3IFG = 0;              // clear interrupt flags
-    P3IE = (BIT0 | BIT1);  // set interupt enable on pins
+     P3IES = (BIT0 | BIT1);  // set interrupt on edge select
+     P3IFG = 0;              // clear interrupt flags
+     P3IE = (BIT0 | BIT1);  // set interupt enable on pins
 
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin notify Data send
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
+     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
+     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin notify Data send
+     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
+     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
+     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+
+
+
+   /* P3DIR |= BIT4;
+    P3SEL0 |= BIT4;
+    P3SEL1 |= BIT4;*/
+    /*
+     P5DIR |= BIT5;
+     P5SEL0 |= BIT5;
+     P5SEL1 |= BIT5;
+     */
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN5);
 
 }
 
