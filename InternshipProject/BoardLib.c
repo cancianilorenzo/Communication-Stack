@@ -49,7 +49,7 @@ void UARTInit()
 
 void setTimers()
 {
-    //OK
+    //Should work
     //Timer A0_0 ---- ENERGY UPDATE ---- WORKS
     TA0CCTL0 = CCIE; // enable capture control interupt
     TA0CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /1 divider
@@ -60,15 +60,15 @@ void setTimers()
     //TODO cambiare
     //Timer A1_0
     TA1CCTL0 = CCIE; // enable capture control interupt
-    TA1CTL = TASSEL_2 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider ---> TODO SET TO TASSEL__2
+    TA1CTL = TASSEL_2 + MC_1 + ID_3; // 1MHz/8 --> 125khz
     TA1CCR0 = 0; // set interupt value
     TA1CCTL0 &= 0x10; // set compare mode
 
 
-    //TODO cambiare
+    //Should be ok
     //Timer A2_0 ---- NODE IDENTIFICATION
     TA2CCTL0 = CCIE; // enable capture control interupt
-    TA2CTL = TASSEL_2 + MC_1 + ID_1; // Use SMCLK in up mode, /8 divider --> 2MHz
+    TA2CTL = TASSEL_2 + MC_1 + ID_2; // Use SMCLK in up mode, /8 divider --> 2MHz
     //TA2CCR0 = 0; // set interupt value
     TA2CCTL0 &= 0x10; // set compare mode
 
@@ -80,7 +80,7 @@ void setTimers()
     TA3CCR0 = 0; // set interupt value
     TA3CCTL0 &= 0x10; // set compare mode
 
-    //Timer A4_0 ---- BURST REPETITION ---- WORKS
+    //Timer A4_0 ---- BURST REPETITION ---- SOULD BE OK ------ TODO TEST
     TA4CCTL0 = CCIE; // enable capture control interupt
     TA4CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /8 divider
     TA4CCR0 = 0; // set interupt value
@@ -115,7 +115,7 @@ void setBoardFrequency()
 
     // Delay by ~10us to let DCO settle. 60 cycles = 20 cycles buffer + (10us / (1/4MHz))
     __delay_cycles(60);
-    CSCTL3 = DIVA__32 | DIVS__16 | DIVM__1; // Set all dividers to 1 for 16MHz operation NO! ACLK divideb by 32 (16MHz/32 --> 500kHz)
+    CSCTL3 = DIVA__32 | DIVS__16 | DIVM__1; // SMCLK set to 1MHz, ACLK set to 250Hz
     CSCTL0_H = 0; // Lock CS registers                      // Lock CS registers
 
 }
@@ -144,7 +144,7 @@ void pinDeclaration()
      P5SEL0 |= BIT5;
      P5SEL1 |= BIT5;
      */
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN5);
+//    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN5);
 
 }
 
