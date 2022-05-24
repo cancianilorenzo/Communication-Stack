@@ -69,7 +69,7 @@ void setTimers()
     //Timer A2_0 ---- NODE IDENTIFICATION
     TA2CCTL0 = CCIE; // enable capture control interupt
     TA2CTL = TASSEL_2 + MC_1 + ID_2; // Use SMCLK in up mode, /8 divider --> 2MHz
-    //TA2CCR0 = 0; // set interupt value
+    TA2CCR0 = 0; // set interupt value
     TA2CCTL0 &= 0x10; // set compare mode
 
 
@@ -90,7 +90,7 @@ void setTimers()
     //OK
     //Timer B0_0 ---- PULSES SEND ---- WORKS
     TB0CCTL0 = CCIE; // enable capture control interupt
-    TB0CTL = TASSEL_2 + MC_1 + ID_3;  // Use SMCLK in up mode, /8 divider
+    TB0CTL = TASSEL_2 + MC_1 + ID_0;  // Use SMCLK in up mode, /8 divider
     TB0CCR0 = 0; // set interupt value
     TB0CCTL0 &= 0x10; // set compare mode
 
