@@ -123,11 +123,12 @@ void setBoardFrequency()
 void pinDeclaration()
 {
     //3.1 DATA RX----3.0 BURST RX
-     P3IES = (BIT0 | BIT1);  // set interrupt on edge select
+     P3IES = (BIT0 | BIT1 | BIT2);  // set interrupt on edge select
      P3IFG = 0;              // clear interrupt flags
-     P3IE = (BIT0 | BIT1);  // set interupt enable on pins
+     P3IE = (BIT0 | BIT1 | BIT2);  // set interupt enable on pins
 
      GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
+     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN4); //Pin real Data send
      GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
      GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin notify Data send
      GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
