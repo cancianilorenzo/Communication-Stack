@@ -235,20 +235,6 @@ __interrupt void T0A0_ISR(void)
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 
-//---------------------------------------------------------------------TIMER DATA TX and RX---------------------------------------------------------------------------------------//
-#pragma vector = TIMER1_A0_VECTOR
-__interrupt void T1A0_ISR(void)
-{
-    if (dataStatus == DATA_RX)
-    {
-        TA1CCR0 = 0; //Stop timer A1
-        dataStatus = DATA_WAIT;
-    }
-    TA1CCR0 = 0;
-
-}
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-
 //---------------------------------------------------------------------TIMER BURST REPETITION TX---------------------------------------------------------------------------------------//
 #pragma vector = TIMER4_A0_VECTOR
 __interrupt void T4A0_ISR(void)
@@ -379,7 +365,6 @@ __interrupt void P3_ISR(void)
                 && dataStatus == DATA_WAIT)
         {
             dataStatus = DATA_RX;
-            TA1CCR0 = 0; //Stop timer A1
 
             if (canStore0 == 0)
             {
@@ -419,7 +404,6 @@ __interrupt void P3_ISR(void)
                 && dataStatus == DATA_WAIT)
         {
             dataStatus = DATA_RX;
-            TA1CCR0 = 0; //Stop timer A1
 
             if (canStore1 == 0)
             {
@@ -496,7 +480,6 @@ void FRAMWrite(char *data, int pos)
 void dataSend12(char *messageToSend)
 {
 
-    TA1CCR0 = 0; //Stop timer 1
     int len = strlen(messageToSend);
     int i = 0;
     for (i = 0; i < len; i++)
@@ -522,7 +505,6 @@ void dataSend12(char *messageToSend)
 void dataSend14(char *messageToSend)
 {
 
-    TA1CCR0 = 0; //Stop timer 1
     int len = strlen(messageToSend);
     int i = 0;
     for (i = 0; i < len; i++)

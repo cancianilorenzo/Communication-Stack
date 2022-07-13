@@ -57,13 +57,6 @@ void setTimers()
     TA0CCTL0 &= 0x10; // set compare mode
 
 
-    //TODO cambiare
-    //Timer A1_0
-    TA1CCTL0 = CCIE; // enable capture control interupt
-    TA1CTL = TASSEL_2 + MC_1 + ID_3; // 1MHz/8 --> 125khz
-    TA1CCR0 = 0; // set interupt value
-    TA1CCTL0 &= 0x10; // set compare mode
-
     //Should be ok
     //Timer A2_0 ---- NODE IDENTIFICATION
     TA2CCTL0 = CCIE; // enable capture control interupt
