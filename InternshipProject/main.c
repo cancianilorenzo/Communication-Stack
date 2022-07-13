@@ -1,14 +1,10 @@
 /*
-
-
- ----TODO
- Initialize ALL PORTS --> unused port to LOW to avoid energy consumption
- move all floating point operation in RAM to reduce power consuption (Faster operation--> lower consuption)
-
-
- Rivedere logica invio dati
+ Lorenzo Canciani
+ lorenzo.canciani@studenti.unitn.it
+ 2022
  */
 
+//Try to put state int instead of unsigned char, should fix
 #include <msp430.h>
 #include "driverlib.h"
 #include <TRAP\TRAP.h>
@@ -19,6 +15,8 @@
 #include <math.h>
 
 #define ACTUAL_NODE 0
+#define LEFT_NODE 1
+#define RIGHT_NODE 2
 
 #define ENERGY_CHANGE       50      // energy variation parameter
 #define ENERGY_INCREMENT    5       // energy maximum increment
@@ -28,7 +26,6 @@
 #define LOW_ENERGY 35
 
 #define ENERGY_UPDATE 500 //500ms energy update
-#define BURST_REPETITION 1000 //Repetition of burst in ms
 #define BURST_GUARD 40 //Burst Guard
 
 #define ENERGY_CONSUMED_TX 70 //Energy consumed in TX
@@ -38,13 +35,20 @@
 #define OOK_NODE0 15
 #define OOK_NODE1 25
 #define OOK_NODE2 35
+
+//Identification frequency
 #define IDOOK_NODE0 19
 #define IDOOK_NODE1 29
 #define IDOOK_NODE2 39
-#define TIMEOUT   15
-#define DATA_TX_TIME 62500
 
-#define MSG_SIZE 64
+//Timeout in BURST RX
+#define TIMEOUT   15
+//#define DATA_TX_TIME 65535 //Max 65536
+
+#define MSG_SIZE 64 //Uart MSG size
+#define DATA_SIZE 16
+
+#define WRITE_SIZE 17 //16 char for data + 1 char for state of FSM --> 48 + 1 bytes (Total FRAM space 256KB)
 
 //Array to store burstLength of other nodes
 int nodeState[NODES];
@@ -58,6 +62,12 @@ int count = 0; //pulses incoming
 int timerValue = 0;
 
 float frequency;
+
+char data0[DATA_SIZE]; //16 bytes --> only 1 data stored
+char data1[DATA_SIZE]; //16 bytes --> only 1 data stored
+int currentDataBuffer = 0;
+unsigned int canStore0 = 0;
+unsigned int canStore1 = 0;
 
 typedef enum
 {
@@ -78,12 +88,38 @@ int energyLevel = 0;
 int energy_count = 0;
 int energy_count_limit = 0;
 int energy_increment = 0;
-int showEnergy = 0;
 
-void dataSend12(); //function to call when nodes start transimitting data on pin 1.2
-void dataSend14(); //function to call when nodes start transimitting data on pin 1.4
+typedef struct DATA
+{
+    char data0[16];
+    char data1[16];
+    char data2[16];
+    char state0;
+    char state1;
+    char state2;
+} DATA;
+
+void dataSend12(char*); //function to call when nodes start transimitting data on pin 1.2
+void dataSend14(char*); //function to call when nodes start transimitting data on pin 1.4
+void FRAMWrite(char*, int); //Function to write on FRAM
+
+//FRAM declaration
+#if defined(__TI_COMPILER_VERSION__)
+#pragma PERSISTENT(dataStored)
+DATA dataStored = { .data0 = "e", .data1 = "e", .data2 = "e", .state0 = 'e',
+                    .state1 = 'e', .state2 = 'e' };
+#elif defined(__IAR_SYSTEMS_ICC__)
+ __persistent struct Data data =
+ {   0};
+ #elif defined(__GNUC__)
+ unsigned long __attribute__((persistent)) FRAM_write[WRITE_SIZE] =
+ {   0};
+#else
+#error Compiler not supported!
+#endif
 
 int main(void)
+
 {
 
     initBoard();
@@ -92,7 +128,10 @@ int main(void)
     UARTInit();
     setTimers();
 
-    nodeState[0] = 100; //init value for node[0] burstLength
+    sprintf(message, "INIT0 ");
+    UART_TXData(message, strlen(message));
+
+    //nodeState[1] = 256; //init value for node[0] burstLength
 
     energy_count_limit = (ENERGY_CHANGE / 2)
             + (rand() % (ENERGY_CHANGE / 2 + 1));
@@ -108,7 +147,8 @@ int main(void)
     {
         //select burst
         nodeState[0] = selectBurstLength(energyLevel);
-        //---------------------------- TODO EDIT FUNCTION IN THE FUTURE --------------------------------
+
+        // ENERGY SIMULATION
         if (energy_count >= energy_count_limit)
         {
             energy_count_limit = (ENERGY_CHANGE / 2)
@@ -117,56 +157,144 @@ int main(void)
             energy_count = 0;
         }
 
-        //----------------------------- TODO Rivedere giro nodi
-        if (nodeStatus != BURST_RX && dataStatus != DATA_RX)
-        {
+        //Store state
 
-            if (nodeState[0] == LONG_BURST && (nodeState[1] == MIDDLE_BURST || nodeState[1] == LONG_BURST))
+        if (dataStored.state0 == '1' || dataStored.state1 == '1')
+        {
+//                sprintf(message, "WS ");
+//                UART_TXData(message, strlen(message));
+
+            if (nodeStatus != BURST_RX && dataStatus != DATA_RX)
             {
-                dataSend12();
-                nodeState[1] = 0;
+
+                if (nodeState[ACTUAL_NODE] == LONG_BURST
+                        && (nodeState[LEFT_NODE] == MIDDLE_BURST
+                                || nodeState[LEFT_NODE] == LONG_BURST)
+                        && dataStored.state0 == '1')
+                {
+                    dataSend12(dataStored.data0);
+                    dataStored.state0 = '0';
+                    sprintf(message, "SEND ");
+                    UART_TXData(message, strlen(message));
+                    nodeState[LEFT_NODE] = 0;
+
+                }
+
+                if (nodeState[ACTUAL_NODE] == LONG_BURST
+                        && (nodeState[RIGHT_NODE] == MIDDLE_BURST
+                                || nodeState[RIGHT_NODE] == LONG_BURST)
+                        && dataStored.state1 == '1')
+                {
+                    dataSend14(dataStored.data1);
+                    dataStored.state1 = '0';
+                    sprintf(message, "SEND1 ");
+                    UART_TXData(message, strlen(message));
+                    nodeState[RIGHT_NODE] = 0;
+
+                }
 
             }
-            if (nodeState[0] == LONG_BURST && nodeState[2] == MIDDLE_BURST)
+        }
+
+        if (canStore0 == 1 || canStore1 == 1)
+        {
+            if (canStore0 == 1)
             {
-                dataSend14();
-                nodeState[2] = 0;
+                FRAMWrite(data0, 0);
+                sprintf(message, "REC ");
+                UART_TXData(message, strlen(message));
+//                sprintf(message, "%s ", dataStored.data0);
+//                UART_TXData(message, strlen(message));
+                canStore0 = 0;
+            }
+
+            if (canStore1 == 1)
+            {
+                FRAMWrite(data1, 1);
+                sprintf(message, "REC1 ");
+                UART_TXData(message, strlen(message));
+                canStore1 = 0;
             }
 
         }
 
+        //dataStored.state0, dataStored.state1, dataStored.state2
+        /*
+         ******************************* FSM ************************************************************
+         */
+//        switch (dataStored.state)
+//        {
+//
+//        case '0':
+//            //IDLE Waiting for data RX
+//            if (currentStored0 || currentStored1)
+//            {
+//                dataStored.state = '1';
+//            }
+//            break;
+//
+//        case '1':
+//            //DATA TX
+//            if (nodeStatus != BURST_RX && dataStatus != DATA_RX)
+//            {
+//                nodeState[0] = selectBurstLength(energyLevel);
+//                if (nodeState[ACTUAL_NODE] == LONG_BURST
+//                        && (nodeState[1] == MIDDLE_BURST
+//                                || nodeState[1] == LONG_BURST))
+//                {
+//                    if (currentStored0)
+//                    {
+//                        dataSend12(dataStored.data0);
+//                        nodeState[1] = 0;
+//                        dataStored.state = '0';
+//                    }
+//
+//                }
+////                if (nodeState[ACTUAL_NODE] == LONG_BURST
+////                        && (nodeState[2] == MIDDLE_BURST
+////                                || nodeState[2] == LONG_BURST))
+////                {
+////
+////                    if (currentStored1)
+////                    {
+////                        dataSend14(dataStored.data1);
+////                        //nodeState[2] = 0;
+////                    }
+////                    dataStored.state = '0';
+////                }
+//                dataStored.state = '0';
+//            }
+//
+//            break;
+//
+//        case '2':
+//            if (canStore0)
+//            {
+//                FRAMWrite(data0, 0);
+//                currentDataBuffer = 0;
+//                currentStored0 = 1;
+//                canStore0 = 0; //Accept data in incoming
+//            }
+//            /*if (canStore1)
+//             {
+//             FRAMWrite(data1, 1);
+//             currentDataBuffer = 0;
+//             currentStored1 = 1;
+//             canStore1 = 0; //Accept data in incoming
+//             }*/
+//            dataStored.state = '0';
+//
+//            break;
+//
+//        default:
+//            sprintf(message, "Error, reset the board!");
+//            UART_TXData(message, strlen(message));
+//        }
     }
 
 }
 
-//---------------------------------------------------------------------ISR AND FUNCTIONS---------------------------------------------------------------------------------------//
-
-//---------------------------------------------------------------------dataSend() Function---------------------------------------------------------------------------------------//
-void dataSend12()
-{
-    TA1CCR0 = 0; //Stop timer 1
-    sprintf(message, "DS12 ");
-    UART_TXData(message, strlen(message));
-    TA1CCR0 = DATA_TX_TIME; // set end value of timer
-    energyLevel = energyLevel - ENERGY_CONSUMED_TX;
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
-    dataStatus = DATA_TX;
-    nodeStatus = BURST_WAIT;
-}
-
-void dataSend14()
-{
-    TA1CCR0 = 0; //Stop timer 1
-    sprintf(message, "DS14 ");
-    UART_TXData(message, strlen(message));
-    TA1CCR0 = DATA_TX_TIME; // set end value of timer
-    energyLevel = energyLevel - ENERGY_CONSUMED_TX;
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
-    dataStatus = DATA_TX;
-    nodeStatus = BURST_WAIT;
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+//---------------------------------------------------------------------ISR AND FUNCTIONS-----------------------------------------------------------------------------------------//
 
 //---------------------------------------------------------------------TIMER ENERGY UPDATE---------------------------------------------------------------------------------------//
 #pragma vector = TIMER0_A0_VECTOR
@@ -175,21 +303,13 @@ __interrupt void T0A0_ISR(void)
 
     if (dataStatus == DATA_WAIT)
     {
-        showEnergy++;
         int energy_step = rand() % (energy_increment + 1);
         energyLevel = energyLevel + energy_step;
         if (energyLevel >= MAX_ENERGY)
             energyLevel = MAX_ENERGY;
         energy_count++;
 
-        energy_step = 120 + energy_step;
-
-//        if (showEnergy == 500)
-//        {
-//            showEnergy = 0;
-//            sprintf(message, "EL %d ", energyLevel);
-//            UART_TXData(message, strlen(message));
-//        }
+        energy_step = 120 + energy_step / 20;
     }
 
 }
@@ -199,13 +319,13 @@ __interrupt void T0A0_ISR(void)
 #pragma vector = TIMER1_A0_VECTOR
 __interrupt void T1A0_ISR(void)
 {
-    if (dataStatus == DATA_TX)
-    {
-        TA1CCR0 = 0; //Stop timer A1
-        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN2);
-        energyLevel = 0;
-        dataStatus = DATA_WAIT;
-    }
+//    if (dataStatus == DATA_TX)
+//    {
+//        TA1CCR0 = 0; //Stop timer A1
+//        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN2);
+//        energyLevel = 0;
+//        dataStatus = DATA_WAIT;
+//    }
 
     if (dataStatus == DATA_RX)
     {
@@ -223,13 +343,13 @@ __interrupt void T4A0_ISR(void)
 {
     if (dataStatus != DATA_TX)
     {
-//        sprintf(message, "BT ");
-//        UART_TXData(message, strlen(message));
         TB0CCR0 = 0; //Stop timer B0
         sendPulses = 0;
         nodeStatus = BURST_TX;
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
         TB0CCR0 = (1000 / (OOK_NODE0 * 2));
+//        sprintf(message, "BT ");
+//        UART_TXData(message, strlen(message));
     }
 
 }
@@ -242,6 +362,8 @@ __interrupt void T0B0_ISR(void)
         TB0CCR0 = 0; //Stop timer
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
         nodeStatus = BURST_WAIT;
+//        sprintf(message, "BT ");
+//        UART_TXData(message, strlen(message));
     }
 
     if (sendPulses != (nodeState[ACTUAL_NODE] * 2))
@@ -268,27 +390,25 @@ __interrupt void T3A0_ISR(void)
         if ((frequency > (IDOOK_NODE2 - 9.9)))
 
         {
+//            sprintf(message, " node2 ");
+//            UART_TXData(message, strlen(message));
             if (count > ((LONG_BURST - BURST_GUARD) - 1))
             {
                 nodeState[2] = LONG_BURST;
-//                sprintf(message, "C%d node2 ", LONG_BURST);
-//                UART_TXData(message, strlen(message));
             }
             else if (count > ((MIDDLE_BURST - BURST_GUARD) - 1))
             {
                 nodeState[2] = MIDDLE_BURST;
-//                sprintf(message, "C%d node2 ", MIDDLE_BURST);
-//                UART_TXData(message, strlen(message));
             }
             else if (count > ((SHORT_BURST - BURST_GUARD) - 1))
             {
                 nodeState[2] = SHORT_BURST;
-//                sprintf(message, "C%d node2 ", SHORT_BURST);
-//                UART_TXData(message, strlen(message));
             }
         }
         else if ((frequency > (IDOOK_NODE1 - 9.9)))
         {
+            sprintf(message, " node2 ");
+            UART_TXData(message, strlen(message));
             if (count > ((LONG_BURST - BURST_GUARD) - 1))
             {
                 nodeState[1] = LONG_BURST;
@@ -312,7 +432,7 @@ __interrupt void T3A0_ISR(void)
     }
     count = 0;
     TA2R = 0;
-    frequency = 0;
+    frequency = 0; //for frequency reset
     timerValue = 0;
     nodeStatus = BURST_WAIT;
 }
@@ -322,8 +442,11 @@ __interrupt void T3A0_ISR(void)
 #pragma vector = PORT3_VECTOR
 __interrupt void P3_ISR(void)
 {
+//Burst RX ISR
     if (P3IFG & BIT0)
     {
+// TODO modify condition to enter the cycle
+
         if (/*(energyLevel == MAX_ENERGY) &&*/(nodeStatus != BURST_TX)
                 && (dataStatus == DATA_WAIT))
         {
@@ -347,19 +470,48 @@ __interrupt void P3_ISR(void)
 
     }
 
+// Data RX ISR
     if (P3IFG & BIT1)
     {
 
-        if ((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX)
-                        && dataStatus == DATA_WAIT)
+        if (((energyLevel == ENERGY_CONSUMED_RX)
+                || (energyLevel > ENERGY_CONSUMED_RX))
+                && dataStatus == DATA_WAIT)
         {
             dataStatus = DATA_RX;
             TA1CCR0 = 0; //Stop timer A1
-            TA1CCR0 = DATA_TX_TIME; //Start timer A1
-            energyLevel = energyLevel - ENERGY_CONSUMED_RX;
-            sprintf(message, "0DR31 ");
-            UART_TXData(message, strlen(message));
+//            TA1CCR0 = DATA_TX_TIME; //Start timer A1
+
+//            sprintf(message, "0DR31 ");
+//            UART_TXData(message, strlen(message));
+
+            if (canStore0 == 0)
+            {
+                dataStatus = DATA_WAIT;
+                if (currentDataBuffer < DATA_SIZE + 1)
+                {
+                    //0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+                    //a raising edge cannto happen if the was no falling edge before!!!!
+                    data0[currentDataBuffer] = '0';
+                    currentDataBuffer++;
+                    data0[currentDataBuffer] = '1';
+                    currentDataBuffer++;
+//                    sprintf(message, "1 %d ", currentDataBuffer);
+//                    UART_TXData(message, strlen(message));
+                    if (currentDataBuffer > DATA_SIZE)
+                    {
+//                        sprintf(message, "DENTRO 17 ", currentDataBuffer);
+//                        UART_TXData(message, strlen(message));
+                        //data0[DATA_SIZE - 1] = '\0';
+                        //data0[currentDataBuffer] = '1';
+                        canStore0 = 1;
+                        energyLevel = energyLevel - ENERGY_CONSUMED_RX;
+                        currentDataBuffer = 0;
+                    }
+                }
+
+            }
+
         }
         else
         {
@@ -373,16 +525,44 @@ __interrupt void P3_ISR(void)
     if (P3IFG & BIT2)
     {
 
-        if ((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX)
-                        && dataStatus == DATA_WAIT)
+        if (((energyLevel == ENERGY_CONSUMED_RX)
+                || (energyLevel > ENERGY_CONSUMED_RX))
+                && dataStatus == DATA_WAIT)
         {
             dataStatus = DATA_RX;
             TA1CCR0 = 0; //Stop timer A1
-            TA1CCR0 = DATA_TX_TIME; //Start timer A1
-            energyLevel = energyLevel - ENERGY_CONSUMED_RX;
-            sprintf(message, "0DR32 ");
-            UART_TXData(message, strlen(message));
+            //            TA1CCR0 = DATA_TX_TIME; //Start timer A1
+
+            //            sprintf(message, "0DR31 ");
+            //            UART_TXData(message, strlen(message));
+
+            if (canStore1 == 0)
+            {
+                dataStatus = DATA_WAIT;
+                if (currentDataBuffer < DATA_SIZE + 1)
+                {
+                    //0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+                    //a raising edge cannto happen if the was no falling edge before!!!!
+                    data1[currentDataBuffer] = '0';
+                    currentDataBuffer++;
+                    data1[currentDataBuffer] = '1';
+                    currentDataBuffer++;
+                    //                    sprintf(message, "1 %d ", currentDataBuffer);
+                    //                    UART_TXData(message, strlen(message));
+                    if (currentDataBuffer > DATA_SIZE)
+                    {
+                        //                        sprintf(message, "DENTRO 17 ", currentDataBuffer);
+                        //                        UART_TXData(message, strlen(message));
+                        //data0[DATA_SIZE - 1] = '\0';
+                        //data0[currentDataBuffer] = '1';
+                        canStore1 = 1;
+                        energyLevel = energyLevel - ENERGY_CONSUMED_RX;
+                        currentDataBuffer = 0;
+                    }
+                }
+
+            }
+
         }
         else
         {
@@ -393,11 +573,112 @@ __interrupt void P3_ISR(void)
         P3IFG &= ~BIT2;
     }
 
+    dataStatus = DATA_WAIT;
+
 }
+
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 #pragma vector = TIMER2_A0_VECTOR
 __interrupt void T2A0_ISR(void)
 {
+// This is needed to avoid blocking board
+// if there is an overflow on timer
+}
 
+//--------------------------------------------------------------------- SUPPORT FUNCTION ---------------------------------------------------------------------------------------//
+
+void FRAMWrite(char *data, int pos)
+{
+    int i;
+
+    if (pos == 0)
+    {
+        dataStored.state0 = '0';
+        for (i = 0; i < strlen(data); i++)
+        {
+            dataStored.data0[i] = data[i];
+        }
+        dataStored.state0 = '1'; //Succesfully stored in FRAM
+//        sprintf(message, "ST-%c ", dataStored.state0);
+//        UART_TXData(message, strlen(message));
+    }
+
+    if (pos == 1)
+    {
+        dataStored.state1 = '0';
+        for (i = 0; i < strlen(data); i++)
+        {
+            dataStored.data1[i] = data[i];
+        }
+        dataStored.state1 = '1'; //Succesfully stored in FRAM
+//        sprintf(message, "SD1 ");
+//        UART_TXData(message, strlen(message));
+    }
+
+}
+//--------------------------------------------------------------------- DATASEND FUNCTION ---------------------------------------------------------------------------------------//
+void dataSend12(char *messageToSend)
+{
+
+    //010101010101010101
+
+    TA1CCR0 = 0; //Stop timer 1
+    int len = strlen(messageToSend);
+    int i = 0;
+    for (i = 0; i < len; i++)
+    {
+        dataStatus = DATA_TX;
+//        __delay_cycles(7372800);
+        if (messageToSend[i] == '1')
+        {
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
+            __delay_cycles(75550);
+            //sprintf(message, " 1 ");
+            //UART_TXData(message, strlen(message));
+        }
+        else
+        {
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN2);
+            __delay_cycles(75550);
+            //sprintf(message, " 0 ");
+            //UART_TXData(message, strlen(message));
+        }
+    }
+    energyLevel = energyLevel - ENERGY_CONSUMED_TX;
+    //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
+    dataStatus = DATA_WAIT;
+    nodeStatus = BURST_WAIT;
+}
+
+void dataSend14(char *messageToSend)
+{
+    //010101010101010101
+
+    TA1CCR0 = 0; //Stop timer 1
+    int len = strlen(messageToSend);
+    int i = 0;
+    for (i = 0; i < len; i++)
+    {
+        dataStatus = DATA_TX;
+//        __delay_cycles(7372800);
+        if (messageToSend[i] == '1')
+        {
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            __delay_cycles(75550);
+            //sprintf(message, " 1 ");
+            //UART_TXData(message, strlen(message));
+        }
+        else
+        {
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            __delay_cycles(75550);
+            //sprintf(message, " 0 ");
+            //UART_TXData(message, strlen(message));
+        }
+    }
+    energyLevel = energyLevel - ENERGY_CONSUMED_TX;
+    //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
+    dataStatus = DATA_WAIT;
+    nodeStatus = BURST_WAIT;
 }
