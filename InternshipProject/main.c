@@ -299,8 +299,6 @@ __interrupt void T3A0_ISR(void)
         }
         else if ((frequency > (IDOOK_NODE1 - 9.9)))
         {
-            sprintf(message, " node2 ");
-            UART_TXData(message, strlen(message));
             if (count > ((LONG_BURST - BURST_GUARD) - 1))
             {
                 nodeState[1] = LONG_BURST;
@@ -485,7 +483,6 @@ void dataSend12(char *messageToSend)
     for (i = 0; i < len; i++)
     {
         dataStatus = DATA_TX;
-//        __delay_cycles(7372800);
         if (messageToSend[i] == '1')
         {
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
@@ -510,7 +507,6 @@ void dataSend14(char *messageToSend)
     for (i = 0; i < len; i++)
     {
         dataStatus = DATA_TX;
-//        __delay_cycles(7372800);
         if (messageToSend[i] == '1')
         {
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);

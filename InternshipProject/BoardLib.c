@@ -12,6 +12,7 @@
 
 void initBoard()
 {
+    //MPU initialization, useful if operations couldbe risky --> not in CCS, already managed
     /* MPUCTL0 = MPUPW;
      MPUSEGB2 = 0x1000; // memory address 0x10000
      MPUSEGB1 = 0x0fc0; // memory address 0x0fc00
@@ -33,12 +34,7 @@ void UARTInit()
 
     UCA0CTLW0 = UCSWRST;                                   // Put eUSCI in reset
     UCA0CTLW0 |= UCSSEL__SMCLK;                    // CLK = SMCLK
-    // Baud Rate calculation
-    // 8000000/(16*9600) = 52.083
-    // Fractional portion = 0.083
-    // User's Guide Table 21-4: UCBRSx = 0x04
-    // UCBRFx = int ( (52.083-52)*16) = 1
-    UCA0BRW = 8;                                            // 8000000/16/9600
+    UCA0BRW = 8;
     UCA0MCTLW = 0xD600;
     UCA0CTLW0 &= ~UCSWRST;                                 // Initialize eUSCI
 
@@ -49,15 +45,13 @@ void UARTInit()
 
 void setTimers()
 {
-    //Should work
-    //Timer A0_0 ---- ENERGY UPDATE ---- WORKS
+    //Timer A0_0 ---- ENERGY UPDATE ----
     TA0CCTL0 = CCIE; // enable capture control interupt
     TA0CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /1 divider
     TA0CCR0 = 0; // set interupt value
     TA0CCTL0 &= 0x10; // set compare mode
 
 
-    //Should be ok
     //Timer A2_0 ---- NODE IDENTIFICATION
     TA2CCTL0 = CCIE; // enable capture control interupt
     TA2CTL = TASSEL_2 + MC_1 + ID_2; // Use SMCLK in up mode, /8 divider --> 2MHz
@@ -72,7 +66,7 @@ void setTimers()
     TA3CCR0 = 0; // set interupt value
     TA3CCTL0 &= 0x10; // set compare mode
 
-    //Timer A4_0 ---- BURST REPETITION ---- SOULD BE OK ------ TODO TEST
+    //Timer A4_0 ---- BURST REPETITION ----
     TA4CCTL0 = CCIE; // enable capture control interupt
     TA4CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /8 divider
     TA4CCR0 = 0; // set interupt value
@@ -80,7 +74,7 @@ void setTimers()
 
 
     //OK
-    //Timer B0_0 ---- PULSES SEND ---- WORKS
+    //Timer B0_0 ---- PULSES SEND ----
     TB0CCTL0 = CCIE; // enable capture control interupt
     TB0CTL = TASSEL_2 + MC_1 + ID_0;  // Use SMCLK in up mode, /8 divider
     TB0CCR0 = 0; // set interupt value
@@ -114,7 +108,7 @@ void setBoardFrequency()
 
 void pinDeclaration()
 {
-    //3.1 DATA RX----3.0 BURST RX
+    //DATA RX----BURST RX
      P3IES = (BIT0 | BIT1 | BIT2);  // set interrupt on edge select
      P3IFG = 0;              // clear interrupt flags
      P3IE = (BIT0 | BIT1 | BIT2);  // set interupt enable on pins
@@ -128,39 +122,17 @@ void pinDeclaration()
      GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
 
 
-
-   /* P3DIR |= BIT4;
-    P3SEL0 |= BIT4;
-    P3SEL1 |= BIT4;*/
-    /*
-     P5DIR |= BIT5;
-     P5SEL0 |= BIT5;
-     P5SEL1 |= BIT5;
-     */
-//    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN5);
-
 }
-
-//NEW UART NEED TEST ------------------------------- TODO
-/*void UART_TXData(uint8_t* c, size_t size)
- {
- int position;
- for (position = 0; position < size; position++)
- {
- UCA0TXBUF = c[position];
- // for(i = 0; i < 5000; i++);//delay
- while(UCBUSY);
- }
- }*/
 
 void UART_TXData(uint8_t *c, size_t size)
 {
+    //Can't find sysTick so this is a possible approach
     int position;
     int i;
     for (position = 0; position < size; position++)
     {
         UCA0TXBUF = c[position];
         for (i = 0; i < 5000; i++)
-            ;    //delay
+            ;
     }
 }
