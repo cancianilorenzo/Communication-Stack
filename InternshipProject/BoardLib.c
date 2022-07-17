@@ -68,7 +68,7 @@ void setTimers()
 
     //Timer A4_0 ---- BURST REPETITION ----
     TA4CCTL0 = CCIE; // enable capture control interupt
-    TA4CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /8 divider
+    TA4CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode
     TA4CCR0 = 0; // set interupt value
     TA4CCTL0 &= 0x10; // set compare mode
 
