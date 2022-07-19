@@ -1,10 +1,4 @@
 //MSP430FR5994
-
-/*
- Lorenzo Canciani
- lorenzo.canciani@studenti.unitn.it
- 2022
- */
 #include <msp430.h>
 #include "driverlib.h"
 #include <TRAP\TRAP.h>
@@ -53,6 +47,10 @@
 int nodeState[NODES];
 int nodeNum;
 int sendPulses;
+
+int bt = 0; //FOR DEBUG, to print BT
+//int ue = 0; //DEBUG
+//int received = 0;
 
 //UART message
 char message[MSG_SIZE];
@@ -184,6 +182,7 @@ int main(void)
                     dataStored.state1 = '0';
                     sprintf(message, "SEND1 ");
                     UART_TXData(message, strlen(message));
+                    dataStatus = DATA_WAIT;
                     nodeState[RIGHT_NODE] = 0;
 
                 }
@@ -206,6 +205,7 @@ int main(void)
                 FRAMWrite(data1, 1);
                 sprintf(message, "REC1 ");
                 UART_TXData(message, strlen(message));
+                dataStatus = DATA_WAIT;
                 canStore1 = 0;
             }
 
@@ -230,6 +230,13 @@ __interrupt void T0A0_ISR(void)
         energy_count++;
 
         energy_step = 120 + energy_step / 20;
+//        ue++;
+//        if (ue == 100)
+//        {
+//            sprintf(message, "UE ");
+//            UART_TXData(message, strlen(message));
+//            ue = 0;
+//        }
     }
 
 }
@@ -246,6 +253,14 @@ __interrupt void T4A0_ISR(void)
         nodeStatus = BURST_TX;
         GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
         TB0CCR0 = (1000 / (OOK_NODE0 * 2));
+        bt++;
+
+        if (bt == 100)
+        {
+            sprintf(message, "BT ");
+            UART_TXData(message, strlen(message));
+            bt = 0;
+        }
     }
 
 }
@@ -278,6 +293,7 @@ __interrupt void T3A0_ISR(void)
 
     if (count > (64 - BURST_GUARD))
     {
+//        received++;
 
         frequency = (float) 250 / ((float) timerValue / (float) count);
 
@@ -296,6 +312,12 @@ __interrupt void T3A0_ISR(void)
             {
                 nodeState[2] = SHORT_BURST;
             }
+//            if (received == 100)
+//            {
+//                sprintf(message, "node2 %d ", nodeState[0]);
+//                UART_TXData(message, strlen(message));
+//                received = 0;
+//            }
         }
         else if ((frequency > (IDOOK_NODE1 - 9.9)))
         {
@@ -313,6 +335,12 @@ __interrupt void T3A0_ISR(void)
                 nodeState[1] = SHORT_BURST;
 
             }
+//            if (received == 100)
+//            {
+//                sprintf(message, "node2 %d ", nodeState[0]);
+//                UART_TXData(message, strlen(message));
+//                received = 0;
+//            }
         }
 
     }
@@ -387,8 +415,8 @@ __interrupt void P3_ISR(void)
         }
         else
         {
-            sprintf(message, "0ER31 "); //Error data reception
-            UART_TXData(message, strlen(message));
+//            sprintf(message, "0ER31 "); //Error data reception
+//            UART_TXData(message, strlen(message));
         }
 
         P3IFG &= ~BIT1;
@@ -427,8 +455,8 @@ __interrupt void P3_ISR(void)
         }
         else
         {
-            sprintf(message, "0ER32 "); //Error data reception
-            UART_TXData(message, strlen(message));
+//            sprintf(message, "0ER32 "); //Error data reception
+//            UART_TXData(message, strlen(message));
         }
 
         P3IFG &= ~BIT2;

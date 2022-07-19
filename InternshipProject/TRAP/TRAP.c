@@ -1,9 +1,3 @@
-/*
- Lorenzo Canciani
- lorenzo.canciani@studenti.unitn.it
- 2022
- */
-
 #include "TRAP.h"
 
 #define MAX_ENERGY 100

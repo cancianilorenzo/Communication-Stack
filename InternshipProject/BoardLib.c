@@ -1,9 +1,3 @@
-/*
- Lorenzo Canciani
- lorenzo.canciani@studenti.unitn.it
- 2022
- */
-
 #include "BoardLib.h"
 #include <msp430.h>
 #include <msp430.h>
@@ -58,8 +52,6 @@ void setTimers()
     TA2CCR0 = 0; // set interupt value
     TA2CCTL0 &= 0x10; // set compare mode
 
-
-    //TODO cambiare
     //Timer A3_0 ------ TIMEOUT BURST RECEPTION
     TA3CCTL0 = CCIE; // enable capture control interupt
     TA3CTL = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider
@@ -72,8 +64,6 @@ void setTimers()
     TA4CCR0 = 0; // set interupt value
     TA4CCTL0 &= 0x10; // set compare mode
 
-
-    //OK
     //Timer B0_0 ---- PULSES SEND ----
     TB0CCTL0 = CCIE; // enable capture control interupt
     TB0CTL = TASSEL_2 + MC_1 + ID_0;  // Use SMCLK in up mode, /8 divider
