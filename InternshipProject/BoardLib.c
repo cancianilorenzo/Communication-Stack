@@ -1,8 +1,38 @@
 #include "BoardLib.h"
 #include <msp430.h>
-#include <msp430.h>
 #include "driverlib.h"
 #include <stdlib.h>
+
+/*FOR DEBUG*/
+#include <string.h>
+#include <stdio.h>
+
+char message[MSG_SIZE];
+
+
+char dataStore[1000] = "c";
+char store = 'c';
+
+
+
+//-----------------------------------
+//memset(dataStored.data, 0, sizeof(dataStored.data));
+//dataStored.state = '0';
+//------------------------------------------
+
+
+
+//int x = 1;
+
+//Energy simulation
+int energyLevel = 0;
+int energy_count = 0;
+int energy_count_limit = 0;
+int energy_increment = 0;
+
+
+//Data Status
+int dataStatus = 0;
 
 void initBoard()
 {
@@ -32,7 +62,6 @@ void UARTInit()
     UCA0MCTLW = 0xD600;
     UCA0CTLW0 &= ~UCSWRST;                                 // Initialize eUSCI
 
-
     UCA0IE |= UCRXIE;
 
 }
@@ -44,31 +73,6 @@ void setTimers()
     TA0CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode, /1 divider
     TA0CCR0 = 0; // set interupt value
     TA0CCTL0 &= 0x10; // set compare mode
-
-
-    //Timer A2_0 ---- NODE IDENTIFICATION
-    TA2CCTL0 = CCIE; // enable capture control interupt
-    TA2CTL = TASSEL_2 + MC_1 + ID_2; // Use SMCLK in up mode, /8 divider --> 2MHz
-    TA2CCR0 = 0; // set interupt value
-    TA2CCTL0 &= 0x10; // set compare mode
-
-    //Timer A3_0 ------ TIMEOUT BURST RECEPTION
-    TA3CCTL0 = CCIE; // enable capture control interupt
-    TA3CTL = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider
-    TA3CCR0 = 0; // set interupt value
-    TA3CCTL0 &= 0x10; // set compare mode
-
-    //Timer A4_0 ---- BURST REPETITION ----
-    TA4CCTL0 = CCIE; // enable capture control interupt
-    TA4CTL = TASSEL_1 + MC_1 + ID_0;  // Use ACLK in up mode
-    TA4CCR0 = 0; // set interupt value
-    TA4CCTL0 &= 0x10; // set compare mode
-
-    //Timer B0_0 ---- PULSES SEND ----
-    TB0CCTL0 = CCIE; // enable capture control interupt
-    TB0CTL = TASSEL_2 + MC_1 + ID_0;  // Use SMCLK in up mode, /8 divider
-    TB0CCR0 = 0; // set interupt value
-    TB0CCTL0 &= 0x10; // set compare mode
 
 }
 
@@ -98,25 +102,29 @@ void setBoardFrequency()
 
 void pinDeclaration()
 {
-    //DATA RX----BURST RX
-     P3IES = (BIT0 | BIT1 | BIT2);  // set interrupt on edge select
-     P3IFG = 0;              // clear interrupt flags
-     P3IE = (BIT0 | BIT1 | BIT2);  // set interupt enable on pins
+    //BURST RX
+    P1IES = BIT4;  // set interrupt on edge select
+    P1IFG = 0;              // clear interrupt flags
+    P1IE = BIT4;  // set interupt enable on pins
 
-     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
-     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN4); //Pin real Data send
-     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
-     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin notify Data send
-     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
-     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+    //DATA RX
+    P3IES = (BIT0 | BIT1 | BIT2);  // set interrupt on edge select
+    P3IFG = 0;              // clear interrupt flags
+    P3IE = (BIT0 | BIT1 | BIT2);  // set interupt enable on pins
 
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN2); //Pin real Data send
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN5); //Pin real Data send
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3); //Pin real Burst send
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0); //Pin notify Data send
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1); //Pin notify Burst send
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
 
 }
 
-void UART_TXData(uint8_t *c, size_t size)
+void UART_TXData(char *c, size_t size)
 {
-    //Can't find sysTick so this is a possible approach
+    //Can't find sysTick like on MSP432 so this is a possible approach
     int position;
     int i;
     for (position = 0; position < size; position++)
@@ -126,3 +134,215 @@ void UART_TXData(uint8_t *c, size_t size)
             ;
     }
 }
+
+void startEnergyTimer(int value)
+{
+    TA0CCR0 = value;
+}
+
+void startEnergySimulation()
+{
+    startEnergyTimer(125);
+    energy_count_limit = (ENERGY_CHANGE / 2)
+            + (rand() % (ENERGY_CHANGE / 2 + 1));
+    energy_increment = rand() % (ENERGY_INCREMENT + 1);
+}
+
+#pragma vector = TIMER0_A0_VECTOR
+__interrupt void interruptEnergy(void)
+{
+
+    if (dataStatus == DATA_WAIT)
+    {
+        int energy_step = rand() % (energy_increment + 1);
+        energyLevel = energyLevel + energy_step;
+        if (energyLevel >= MAX_ENERGY)
+            energyLevel = MAX_ENERGY;
+        energy_count++;
+
+        energy_step = 120 + energy_step / 20;
+
+        if (energy_count >= energy_count_limit)
+        {
+            energy_count_limit = (ENERGY_CHANGE / 2)
+                    + (rand() % (ENERGY_CHANGE / 2 + 1));
+            energy_increment = rand() % (ENERGY_INCREMENT + 1);
+            energy_count = 0;
+        }
+    }
+
+}
+
+/*ADDED FOR DATA-RX HANDLER*/
+#define DATA_SIZE 16
+char data0[DATA_SIZE]; //16 bytes --> only 1 data stored
+char data1[DATA_SIZE]; //16 bytes --> only 1 data stored
+int currentDataBuffer = 0;
+unsigned int canStore0 = 0;
+unsigned int canStore1 = 0;
+/*END ADDED FOR...*/
+
+#pragma vector = PORT3_VECTOR
+__interrupt void P3_ISR(void)
+{
+
+// Data RX ISR
+    if (P3IFG & BIT1)
+    {
+
+        if (((energyLevel == ENERGY_CONSUMED_RX)
+                || (energyLevel > ENERGY_CONSUMED_RX))
+                && dataStatus == DATA_WAIT)
+        {
+            sprintf(message, "REC31 "); //Error data reception
+            UART_TXData(message, strlen(message));
+//            dataStatus = DATA_RX;
+//
+//            if (canStore0 == 0)
+//            {
+//                dataStatus = DATA_WAIT;
+//                if (currentDataBuffer < DATA_SIZE + 1)
+//                {
+//                    //a raising edge cannto happen if the was no falling edge before!!!!
+//                    data0[currentDataBuffer] = '0';
+//                    currentDataBuffer++;
+//                    data0[currentDataBuffer] = '1';
+//                    currentDataBuffer++;
+//                    if (currentDataBuffer > DATA_SIZE)
+//                    {
+//                        canStore0 = 1;
+//                        energyLevel = energyLevel - ENERGY_CONSUMED_RX;
+//                        currentDataBuffer = 0;
+//                    }
+//                }
+//
+//            }
+
+        }
+        else
+        {
+            sprintf(message, "ER31 "); //Error data reception
+            UART_TXData(message, strlen(message));
+        }
+
+        P3IFG &= ~BIT1;
+    }
+
+    if (P3IFG & BIT2)
+    {
+
+        if (((energyLevel == ENERGY_CONSUMED_RX)
+                || (energyLevel > ENERGY_CONSUMED_RX))
+                && dataStatus == DATA_WAIT)
+        {
+//            dataStatus = DATA_RX;
+//
+//            if (canStore1 == 0)
+//            {
+//                dataStatus = DATA_WAIT;
+//                if (currentDataBuffer < DATA_SIZE + 1)
+//                {
+//
+//                    //a raising edge cannto happen if the was no falling edge before!!!!
+//                    data1[currentDataBuffer] = '0';
+//                    currentDataBuffer++;
+//                    data1[currentDataBuffer] = '1';
+//                    currentDataBuffer++;
+//                    if (currentDataBuffer > DATA_SIZE)
+//                    {
+//                        canStore1 = 1;
+//                        energyLevel = energyLevel - ENERGY_CONSUMED_RX;
+//                        currentDataBuffer = 0;
+//                    }
+//                }
+//
+//            }
+
+        }
+        else
+        {
+            sprintf(message, "0ER32 "); //Error data reception
+            UART_TXData(message, strlen(message));
+        }
+
+        P3IFG &= ~BIT2;
+    }
+
+    dataStatus = DATA_WAIT;
+
+}
+
+//typedef struct DATA
+//{
+//    char data[256];
+//    char state; //Char to have atomicity --> CPU operate on 1byte x time
+//} DATA;
+////FRAM compiler instructions
+//#if defined(__TI_COMPILER_VERSION__)
+//#pragma PERSISTENT(dataStored)
+//DATA dataStored = { .data = "e", .state = 'e' };
+//#else
+//#error Compiler not supported!
+//#endif
+
+void FRAMWrite(char *data, int pos)
+{
+
+    int i;
+
+    store = '0';
+    for (i = 0; i < strlen(data); i++)
+    {
+        dataStore[i] = data[i];
+    }
+    store = '1'; //Succesfully stored in FRAM;
+}
+
+
+void dataSend12(char *messageToSend)
+{
+
+    int len = strlen(messageToSend);
+    int i = 0;
+    for (i = 0; i < len; i++)
+    {
+        dataStatus = DATA_TX;
+        if (messageToSend[i] == '1')
+        {
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
+            __delay_cycles(75550);
+        }
+        else
+        {
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN2);
+            __delay_cycles(75550);
+        }
+    }
+    energyLevel = energyLevel - ENERGY_CONSUMED_TX;
+    dataStatus = DATA_WAIT;
+}
+
+
+void dataSend15(char *messageToSend)
+{
+
+    int len = strlen(messageToSend);
+    int i = 0;
+    for (i = 0; i < len; i++)
+    {
+        dataStatus = DATA_TX;
+        if (messageToSend[i] == '1')
+        {
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN5);
+            __delay_cycles(75550); //Needed if other board clock is slower
+        }
+        else
+        {
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
+            __delay_cycles(75550); //Needed if other board clock is slower
+        }
+    }
+    energyLevel = energyLevel - ENERGY_CONSUMED_TX;
+    dataStatus = DATA_WAIT;
+}
+

@@ -18,6 +18,18 @@ For MSP430FR5994 (the current target board, but the code can easily be ported to
     - TB0 --> Pulses send
 
 
+# Boardlib
+- void initBoard();
+- void setTimers();
+- void setBoardFrequency();
+- void pinDeclaration();
+- void UARTInit();
+- void UART_TXData();
+- void StartEnergyTimer(int);
+- void StartEnergySimulation();
+- void interruptEnergy(void);
+
+
 
 
 
