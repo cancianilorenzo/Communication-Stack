@@ -24,9 +24,9 @@
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //TIMER FOR BURST REPETITION
-#define BURST_REPETITION_CCCR TA4CCTL0
-#define BURST_REPETITION_CR TA4CTL
-#define BURST_REPETITION_EV TA4CCR0
+#define BURST_REPETITION_CCCR TA1CCTL0
+#define BURST_REPETITION_CR TA1CTL
+#define BURST_REPETITION_EV TA1CCR0
 //VALUE FOR BURST REPETITION
 #define BURST_REPETITION_PERIOD 250 //For repeat the burst every 1 second
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
@@ -43,7 +43,7 @@
 /************ HANDLER TIMER NAME DEFINITION ***********/
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //HANDLER DEFINITION
-#define BURST_REPETITION TIMER4_A0_VECTOR
+#define BURST_REPETITION TIMER1_A0_VECTOR
 #define PULSES_SEND TIMER0_B0_VECTOR
 #define NODE_ID TIMER3_A0_VECTOR
 
@@ -54,7 +54,12 @@
 /************ HANDLER PIN DEFINITION ***********/
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //HANDLER DEFINITION
-#define BURST_RX_PORT PORT1_VECTOR
+#define BURST_RX_VECTOR PORT1_VECTOR
+//GPIO DEFINITION
+#define BURST_RX_PORT GPIO_PORT_P1
+#define BURST_RX_PIN GPIO_PIN4
+#define BURST_TX_PORT GPIO_PORT_P1
+#define BURST_TX_PIN GPIO_PIN3
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -90,9 +95,9 @@ extern int nodeState[];
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /************ ON/OFF KEY MODULATION FREQUENCY IN khz ***********/
-#define OOK_NODE 10 //Current node --> used for send pulses
-#define OOK_NODE_0 25 //Node 1 --> used to identify node
-#define OOK_NODE_1 35 //Node 2 --> used to identify node
+#define OOK_NODE 15 //Current node --> used for send pulses
+//#define OOK_NODE_0 25 //Node 1 --> used to identify node
+//#define OOK_NODE_1 35 //Node 2 --> used to identify node
 
 //int OOK_NODE_INCOME[NODES-1];
 extern int OOK_NODE_INCOME[]; //NOT A GOOD APPROACH; OTHERWISE I CANNOT COMPILE!!!
@@ -104,6 +109,8 @@ extern int OOK_NODE_INCOME[]; //NOT A GOOD APPROACH; OTHERWISE I CANNOT COMPILE!
 void TRAPTimer();
 void selectBurstLengthTRAP(int);
 int canSendTRAP(int);
+void TRAPGPIO();
+void resetTRAP(int);
 
 #endif
 

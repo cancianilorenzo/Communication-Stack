@@ -10,12 +10,15 @@
 int main(void)
 
 {
+
     initBoard();
     pinDeclaration();
     setBoardFrequency();
     UARTInit();
     setTimers();
     startEnergySimulation();
+
+    TRAPGPIO();
     TRAPTimer();
 
     sprintf(message, "INIT0 ");
@@ -24,7 +27,15 @@ int main(void)
     while (1)
     {
 
-/*-------------------------- BEGIN CODE TO TEST THE FRAM -----------------------------------------------*/
+        if (canSendTRAP(3))
+        {
+            dataSend("0111101101", 0);
+//            sprintf(message, "SEND ");
+//            UART_TXData(message, strlen(message));
+            resetTRAP(3);
+        }
+
+        /*-------------------------- BEGIN CODE TO TEST THE FRAM -----------------------------------------------*/
 //        if (store != '0')
 //        {
 //            store = '0';
@@ -43,11 +54,9 @@ int main(void)
 //                UART_TXData(message, strlen(message));
 //            }
 //        }
-/*-------------------------- END CODE TO TEST THE FRAM -----------------------------------------------*/
+        /*-------------------------- END CODE TO TEST THE FRAM -----------------------------------------------*/
 
-
-        //canSendTRAP(1);
-
+//canSendTRAP(1);
         //Store state
 //
 //        if (dataStored.state0 == '1' || dataStored.state1 == '1')
@@ -110,7 +119,6 @@ int main(void)
 //            UART_TXData(message, strlen(message));
 //            FRAMWrite("010101010101", 1);
 //        }
-
     }
 
 }

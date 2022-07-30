@@ -14,6 +14,13 @@ int burstDebug = 0;
 int nodeState[NODES];
 int nodeStatus = 0;
 
+#ifndef BOARDLIB_H_
+#define DATA_WAIT           0
+#define DATA_TX             1
+#define DATA_RX             2
+int dataStatus = DATA_WAIT;
+#endif
+
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //TIMER DECLARATION
 void TRAPTimer()
@@ -82,7 +89,7 @@ __interrupt void interruptBurstRepetition(void)
         TB0CCR0 = 0; //Stop timer B0
         sendPulses = 0;
         nodeStatus = BURST_TX;
-        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        GPIO_setOutputLowOnPin(BURST_TX_PORT, BURST_TX_PIN);
         TB0CCR0 = (1000 / (OOK_NODE * 2));
 //        burstDebug++;
 //        if (burstDebug == 100)
@@ -104,13 +111,13 @@ __interrupt void interruptPulsesSending(void)
     if (sendPulses == (burstValue * 2)) //ON-OFF PIN --> 2 cycles
     {
         TB0CCR0 = 0; //Stop timer
-        GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        GPIO_setOutputLowOnPin(BURST_TX_PORT, BURST_TX_PIN);
         nodeStatus = BURST_WAIT;
     }
 
     if (sendPulses != (burstValue * 2))
     {
-        GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN3);
+        GPIO_toggleOutputOnPin(BURST_TX_PORT, BURST_TX_PIN);
         sendPulses++;
     }
 
@@ -119,16 +126,17 @@ __interrupt void interruptPulsesSending(void)
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
-#pragma vector = BURST_RX_PORT
+#pragma vector = BURST_RX_VECTOR
 __interrupt void interruptBurstRX(void)
 {
 //Burst RX ISR
-    if (P1IFG & BIT4)
+//    if (P1IFG & BIT4)
+    if (GPIO_getInterruptStatus(BURST_RX_PORT, BURST_RX_PIN))
     {
 //        sprintf(debugUART, "RECB ");
 //        UART_TXData(debugUART, strlen(debugUART));
 
-        if ((nodeStatus != BURST_TX) /*&& (dataStatus == DATA_WAIT)*/)
+        if ((nodeStatus != BURST_TX) && (dataStatus == DATA_WAIT))
         {
 //            sprintf(debugUART, "0 ");
 //            UART_TXData(debugUART, strlen(debugUART));
@@ -141,7 +149,8 @@ __interrupt void interruptBurstRX(void)
                     NODE_ID_CR = TASSEL_2 + MC_2 + ID_3; //250khz --> SMCLK 1MHZ!!!
                     BURST_TIMEOUT_CR = TASSEL_1 + MC_1 + ID_3;
                 }
-                if(count == 20){
+                if (count == 20)
+                {
                     NODE_ID_CR = TASSEL_2 + MC_0 + ID_0; //Stop timer
                 }
                 count++;
@@ -153,7 +162,8 @@ __interrupt void interruptBurstRX(void)
             }
         }
 
-        P1IFG &= ~BIT4;
+//        P1IFG &= ~BIT4;
+        GPIO_clearInterrupt(BURST_RX_PORT, BURST_RX_PIN);
 
     }
 
@@ -162,7 +172,7 @@ __interrupt void interruptBurstRX(void)
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
-int OOK_NODE_INCOME[] = { 15, 20, 25, 30, 35, 40, 45, 50};
+int OOK_NODE_INCOME[] = {10, 15, 20, 25, 30, 35, 40, 45, 50 };
 
 #pragma vector = NODE_ID
 __interrupt void frequencyAllocation(void)
@@ -176,15 +186,15 @@ __interrupt void frequencyAllocation(void)
     if (count > (64 - BURST_GUARD))
     {
         frequency = (float) 125 / ((float) timerValue / (float) 21);
-        sprintf(debugUART, "F %.1f ", frequency);
-        UART_TXData(debugUART, strlen(debugUART));
+//        sprintf(debugUART, "F %.1f ", frequency);
+//        UART_TXData(debugUART, strlen(debugUART));
 
         int i;
         for (i = 0; i < NODES - 1; i++)
         {
 //            if((frequency > (OOK_NODE_INCOME[i] - 2.5)) && (frequency < (OOK_NODE_INCOME[i] + 2.5)))
 //            if (frequency > ((OOK_NODE_INCOME[i] + 2.5) - 5))
-            if(frequency < OOK_NODE_INCOME[i] + 0.5)
+            if (frequency < OOK_NODE_INCOME[i] + 0.3)
             {
                 if (count > ((LONG_BURST - BURST_GUARD) - 1))
                 {
@@ -199,8 +209,8 @@ __interrupt void frequencyAllocation(void)
                     nodeState[i] = SHORT_BURST;
                 }
 
-                sprintf(debugUART, "NODE%d %d ", i, nodeState[i]);
-                UART_TXData(debugUART, strlen(debugUART));
+//                sprintf(debugUART, "NODE%d %d ", i, nodeState[i]);
+//                UART_TXData(debugUART, strlen(debugUART));
                 break;
 
             }
@@ -239,8 +249,6 @@ int canSendTRAP(int choosenNode)
                     || nodeState[choosenNode] == LONG_BURST))
     {
         canSend = 1;
-//        sprintf(debugUART, "CS: %d ", canSend);
-//        UART_TXData(debugUART, strlen(debugUART));
     }
 
     return canSend;
@@ -248,3 +256,29 @@ int canSendTRAP(int choosenNode)
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+void TRAPGPIO()
+{
+//    BURST RX
+//    P1IES = BIT4;  // pull-up
+//    P1IFG = 0;              // clear interrupt flags
+//    P1IE = BIT4;  // set interupt enable on pins
+
+    GPIO_setAsInputPinWithPullUpResistor(BURST_RX_PORT, BURST_RX_PIN);
+    GPIO_selectInterruptEdge(BURST_RX_PORT, BURST_RX_PIN,
+                             GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_clearInterrupt(BURST_RX_PORT, BURST_RX_PIN);
+    GPIO_enableInterrupt(BURST_RX_PORT, BURST_RX_PIN);
+
+    GPIO_setAsOutputPin(BURST_TX_PORT, BURST_TX_PIN); //Pin real Burst send
+
+
+}
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+void resetTRAP(int nodeNumber){
+    nodeState[nodeNumber] = 0;
+    burstValue = 0;
+}
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
