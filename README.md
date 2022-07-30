@@ -29,6 +29,8 @@ For MSP430FR5994 (the current target board, but the code can easily be ported to
 - void StartEnergySimulation();
 - void interruptEnergy(void);
 
+#TRAP
+
 
 
 
