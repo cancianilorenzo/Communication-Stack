@@ -27,20 +27,20 @@ int main(void)
     while (1)
     {
 
-        if (!dataToSend())
+//        if (!dataToSend())
+//        {
+//            //dataProduction();
+//            //....
+//            //FRAMWrite(productData);
+//        }
+//        if (dataToSend())
+//        {
+        if (canSendTRAP(0))
         {
-            //dataProduction();
-            //....
-            //FRAMWrite(productData);
+            dataSend("0111101101", 0);
+            resetTRAP(0);
         }
-        if (dataToSend())
-        {
-            if(canSendTRAP(3))
-            {
-                dataSend("0111101101", 0);
-                resetTRAP(3);
-            }
-        }
+//        }
     }
 
 }

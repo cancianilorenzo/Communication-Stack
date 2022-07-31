@@ -14,7 +14,7 @@ char store = '0';
 
 //DATA_TX
 int TX = -1;
-char auxString[RX_SIZE] = "0111101101";
+char auxString[RX_SIZE];
 int currentSend = 0;
 
 //-----------------------------------
@@ -234,7 +234,7 @@ void startEnergyTimer(int value)
 
 void startEnergySimulation()
 {
-    startEnergyTimer(125);
+    startEnergyTimer(ENERGY_UPDATE_RATE);
     energy_count_limit = (ENERGY_CHANGE / 2)
             + (rand() % (ENERGY_CHANGE / 2 + 1));
     energy_increment = rand() % (ENERGY_INCREMENT + 1);
@@ -409,7 +409,7 @@ void interruptON(int number)
     }
 #endif
     received = 0;
-    TA0CCR0 = 125;
+    TA0CCR0 = ENERGY_UPDATE_RATE;
     RX = -1;
     dataStatus = DATA_WAIT;
 }
@@ -619,7 +619,7 @@ __interrupt void interruptEnergy(void)
                 currentSend = 0;
                 TX = -1;
                 TA0CCR0 = 0;
-                TA0CCR0 = 125;
+                TA0CCR0 = ENERGY_UPDATE_RATE;
             }
         }
 
@@ -688,7 +688,7 @@ void interruptOFF(int number)
 
     energyLevel = energyLevel - ENERGY_CONSUMED_RX;
     TA0CCR0 = 0;
-    TA0CCR0 = 1;
+    TA0CCR0 = RX_TX_RATE;
 }
 
 #pragma vector = DATA_RX_VECTOR
@@ -1018,16 +1018,19 @@ void dataSend(char *messageToSend, int numberPort)
 {
     if (TX == -1)
     {
-        int i = 0;
-        for (i = 0; i < strlen(messageToSend); i++)
-        {
-            auxString[i] = messageToSend[i];
-        }
+//        int i = 0;
+//        for (i = 0; i < strlen(messageToSend); i++)
+//        {
+//            auxString[i] = messageToSend[i];
+//        }
+        sprintf(auxString, messageToSend);
+//        sprintf(message, "%s ", auxString);
+//        UART_TXData(message, strlen(message));
         TX = numberPort;
         energyLevel = energyLevel - ENERGY_CONSUMED_TX;
         dataStatus = DATA_TX;
         TA0CCR0 = 0;
-        TA0CCR0 = 1;
+        TA0CCR0 = RX_TX_RATE;
     }
 }
 

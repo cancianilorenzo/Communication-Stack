@@ -28,6 +28,10 @@
 #define BURST_REPETITION_CR TA1CTL
 #define BURST_REPETITION_EV TA1CCR0
 //VALUE FOR BURST REPETITION
+
+//FOR CLOCK AT 8MHZ
+//#define BURST_REPETITION_PERIOD 500 //For repeat the burst every 1 second
+//FOR CLOCK AT 16MHZ
 #define BURST_REPETITION_PERIOD 250 //For repeat the burst every 1 second
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 

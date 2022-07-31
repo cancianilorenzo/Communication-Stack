@@ -3,6 +3,9 @@
 
 #include <string.h> //For memset
 
+
+
+
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /*Energy simulation params, can be remove in real world application*/
 extern int energyLevel;
@@ -19,6 +22,15 @@ void startEnergySimulation();
 void interruptEnergy(void);
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+
+//IF CLOCK AT 16MHZ uncomment rows below
+#define ENERGY_UPDATE_RATE 125
+#define RX_TX_RATE 1
+
+
+//IF CLOCK AT 8MHZ uncomment rows below
+//#define ENERGY_UPDATE_RATE 250
+//#define RX_TX_RATE 2
 
 
 

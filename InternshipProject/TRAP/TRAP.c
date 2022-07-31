@@ -29,13 +29,26 @@ int nodeStatus = 0;
 int dataStatus = DATA_WAIT;
 #endif
 
+//FOR CLOCK AT 8MHZ
+//#define NODE_IDENTIFICATION_DIVIDER ID_2
+
+//FOR CLOCK AT 16MHZ
+#define NODE_IDENTIFICATION_DIVIDER ID_3
+
+//FOR CLOCK AT 16MHZ
+#define NODE_IDENTIFICATION_SPEED 125
+
+//FOR CLOCK AT 8MHZ
+//#define NODE_IDENTIFICATION_SPEED 250
+
+
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //TIMER DECLARATION
 void TRAPTimer()
 {
     //NODE IDENTIFICATION
     NODE_ID_CCCR = CCIE;
-    NODE_ID_CR = TASSEL_2 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider --> 2MHz
+    NODE_ID_CR = TASSEL_2 + MC_1 + NODE_IDENTIFICATION_DIVIDER; // Use SMCLK in up mode, /8 divider --> 2MHz
     NODE_ID_EV = 0;
     NODE_ID_CCCR &= 0x10;
 
@@ -154,7 +167,7 @@ __interrupt void interruptBurstRX(void)
                 nodeStatus = BURST_RX;
                 if (count == 0)
                 {
-                    NODE_ID_CR = TASSEL_2 + MC_2 + ID_3; //250khz --> SMCLK 1MHZ!!!
+                    NODE_ID_CR = TASSEL_2 + MC_2 + NODE_IDENTIFICATION_DIVIDER; //250khz --> SMCLK 1MHZ!!!
                     BURST_TIMEOUT_CR = TASSEL_1 + MC_1 + ID_3;
                 }
                 if (count == 20)
@@ -193,16 +206,16 @@ __interrupt void frequencyAllocation(void)
 
     if (count > (64 - BURST_GUARD))
     {
-        frequency = (float) 125 / ((float) timerValue / (float) 21);
-        sprintf(debugUART, "F %.1f ", frequency);
-        UART_TXData(debugUART, strlen(debugUART));
+        frequency = (float) NODE_IDENTIFICATION_SPEED / ((float) timerValue / (float) 21);
+//        sprintf(debugUART, "F %.1f ", frequency);
+//        UART_TXData(debugUART, strlen(debugUART));
 
         int i;
         for (i = 0; i < NODES; i++)
         {
 //            if((frequency > (OOK_NODE_INCOME[i] - 2.5)) && (frequency < (OOK_NODE_INCOME[i] + 2.5)))
 //            if (frequency > ((OOK_NODE_INCOME[i] + 2.5) - 5))
-            if (frequency < OOK_NODE_INCOME[i] + 0.6)
+            if (frequency < OOK_NODE_INCOME[i] + 1)
             {
                 if (count > ((LONG_BURST - BURST_GUARD) - 1))
                 {
@@ -217,8 +230,8 @@ __interrupt void frequencyAllocation(void)
                     nodeState[i] = SHORT_BURST;
                 }
 
-                sprintf(debugUART, "NODE%d %d ", i, nodeState[i]);
-                UART_TXData(debugUART, strlen(debugUART));
+//                sprintf(debugUART, "NODE%d %d ", i, nodeState[i]);
+//                UART_TXData(debugUART, strlen(debugUART));
                 break;
 
             }
