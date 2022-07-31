@@ -89,7 +89,7 @@ extern int nodeStatus;
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /************ ARRAY TO STORE NODE STATE ***********/
-#define NODES 9
+#define NODES 2
 extern int nodeState[];
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -100,7 +100,8 @@ extern int nodeState[];
 //#define OOK_NODE_1 35 //Node 2 --> used to identify node
 
 //int OOK_NODE_INCOME[NODES-1];
-extern int OOK_NODE_INCOME[]; //NOT A GOOD APPROACH; OTHERWISE I CANNOT COMPILE!!!
+//extern int OOK_NODE_INCOME[NODES]; //NOT A GOOD APPROACH; OTHERWISE I CANNOT COMPILE!!!
+extern int OOK_NODE_INCOME[NODES]; /*= {10, 15, 20, 25, 30, 35, 40, 45, 50 };*/
 //int OOK_NODE_INCOME[] = {15, 20, 25, 30, 35, 40, 45, 50};
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 

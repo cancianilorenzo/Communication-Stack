@@ -4,6 +4,14 @@
 #include "driverlib.h"
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+//ARRAY TO STORE FREQUENCY OF NODES, STORE IN ASCENDING ORDER
+int OOK_NODE_INCOME[NODES] = {10, 15};
+//int OOK_NODE_INCOME[NODES] = {10, 15, 20, 25, 30, 35, 40, 45, 50};
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+
+
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //Auxiliary stuff for debug
 char debugUART[64];
 #include <string.h>
@@ -172,7 +180,7 @@ __interrupt void interruptBurstRX(void)
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
-int OOK_NODE_INCOME[] = {10, 15, 20, 25, 30, 35, 40, 45, 50 };
+
 
 #pragma vector = NODE_ID
 __interrupt void frequencyAllocation(void)
@@ -186,15 +194,15 @@ __interrupt void frequencyAllocation(void)
     if (count > (64 - BURST_GUARD))
     {
         frequency = (float) 125 / ((float) timerValue / (float) 21);
-//        sprintf(debugUART, "F %.1f ", frequency);
-//        UART_TXData(debugUART, strlen(debugUART));
+        sprintf(debugUART, "F %.1f ", frequency);
+        UART_TXData(debugUART, strlen(debugUART));
 
         int i;
-        for (i = 0; i < NODES - 1; i++)
+        for (i = 0; i < NODES; i++)
         {
 //            if((frequency > (OOK_NODE_INCOME[i] - 2.5)) && (frequency < (OOK_NODE_INCOME[i] + 2.5)))
 //            if (frequency > ((OOK_NODE_INCOME[i] + 2.5) - 5))
-            if (frequency < OOK_NODE_INCOME[i] + 0.3)
+            if (frequency < OOK_NODE_INCOME[i] + 0.6)
             {
                 if (count > ((LONG_BURST - BURST_GUARD) - 1))
                 {
@@ -209,8 +217,8 @@ __interrupt void frequencyAllocation(void)
                     nodeState[i] = SHORT_BURST;
                 }
 
-//                sprintf(debugUART, "NODE%d %d ", i, nodeState[i]);
-//                UART_TXData(debugUART, strlen(debugUART));
+                sprintf(debugUART, "NODE%d %d ", i, nodeState[i]);
+                UART_TXData(debugUART, strlen(debugUART));
                 break;
 
             }

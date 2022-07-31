@@ -117,8 +117,9 @@ void UART_TXData();
 
 
 
-void FRAMWrite(char*, int); //Function to write on FRAM
+int FRAMWrite(char*); //Function to write on FRAM
 void dataSend(char*, int);
+int dataToSend();
 
 
 void interruptON(int);

@@ -10,7 +10,7 @@
 char message[MSG_SIZE];
 
 char dataStore[1000] = "c";
-char store = 'c';
+char store = '0';
 
 //DATA_TX
 int TX = -1;
@@ -990,20 +990,29 @@ __interrupt void P3_ISR(void)
 #endif
 }
 //------------------------------------------------------------------------DA VEDERE DOPO
-//void FRAMWrite(char *data, int pos)
-//{
-//
-//int i;
-//
-//store = '0';
-//for (i = 0; i < strlen(data); i++)
-//{
-//    dataStore[i] = data[i];
-//}
-//store = '1'; //Succesfully stored in FRAM;
-//}
-//
+int FRAMWrite(char *data)
+{
+int res = 0;
+int i;
+store = '0';
+for (i = 0; i < strlen(data); i++)
+{
+    dataStore[i] = data[i];
+}
+store = '1'; //Succesfully stored in FRAM;
+res = 1;
 
+return res;
+}
+
+
+int dataToSend(){
+    int res = 0;
+    if(store == '1'){
+        res = 1;
+    }
+    return res;
+}
 
 void dataSend(char *messageToSend, int numberPort)
 {
@@ -1021,4 +1030,9 @@ void dataSend(char *messageToSend, int numberPort)
         TA0CCR0 = 1;
     }
 }
+
+
+
+
+
 
