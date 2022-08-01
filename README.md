@@ -1,9 +1,5 @@
 <p align="center">
   <h2 align="center">TRAP library for n nodes</h2>
-
-  <p align="center">
- Lorenzo canciani
-  </p>
 </p>
 
 
