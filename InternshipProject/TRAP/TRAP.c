@@ -3,20 +3,25 @@
 #include <msp430.h>
 #include "driverlib.h"
 
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------------------------EDIT THE FREQUENCY ARRAY----------------------------------------------------------------------------*/
 //ARRAY TO STORE FREQUENCY OF NODES, STORE IN ASCENDING ORDER
-int OOK_NODE_INCOME[NODES] = {10, 15};
+int OOK_NODE_INCOME[NODES] = {15, 50};
+//EXAMPLE OF ARRAY
 //int OOK_NODE_INCOME[NODES] = {10, 15, 20, 25, 30, 35, 40, 45, 50};
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 
 
+/*----------------------------------------------------FROM HERE EDIT ONLY IF NEEDED-------------------------------------------------------------------*/
+
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //Auxiliary stuff for debug
+#ifdef DEBUG
 char debugUART[64];
 #include <string.h>
 #include <stdio.h>
 int burstDebug = 0;
+#endif
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 int nodeState[NODES];
@@ -29,17 +34,10 @@ int nodeStatus = 0;
 int dataStatus = DATA_WAIT;
 #endif
 
-//FOR CLOCK AT 8MHZ
-//#define NODE_IDENTIFICATION_DIVIDER ID_2
 
-//FOR CLOCK AT 16MHZ
-#define NODE_IDENTIFICATION_DIVIDER ID_3
+#define NODE_IDENTIFICATION_DIVIDER ID_0
+#define NODE_IDENTIFICATION_SPEED 1000
 
-//FOR CLOCK AT 16MHZ
-#define NODE_IDENTIFICATION_SPEED 125
-
-//FOR CLOCK AT 8MHZ
-//#define NODE_IDENTIFICATION_SPEED 250
 
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
@@ -112,13 +110,15 @@ __interrupt void interruptBurstRepetition(void)
         nodeStatus = BURST_TX;
         GPIO_setOutputLowOnPin(BURST_TX_PORT, BURST_TX_PIN);
         TB0CCR0 = (1000 / (OOK_NODE * 2));
-//        burstDebug++;
-//        if (burstDebug == 100)
-//        {
-//            sprintf(debugUART, "BT ");
-//            UART_TXData(debugUART, strlen(debugUART));
-//            burstDebug = 0;
-//        }
+#ifdef DEBUG
+        burstDebug++;
+        if (burstDebug == 100)
+        {
+            sprintf(debugUART, "BT ");
+            UART_TXData(debugUART, strlen(debugUART));
+            burstDebug = 0;
+        }
+#endif
 
     }
 }
@@ -146,7 +146,7 @@ __interrupt void interruptPulsesSending(void)
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
+//BURST RX HANDLER
 #pragma vector = BURST_RX_VECTOR
 __interrupt void interruptBurstRX(void)
 {
@@ -154,13 +154,13 @@ __interrupt void interruptBurstRX(void)
 //    if (P1IFG & BIT4)
     if (GPIO_getInterruptStatus(BURST_RX_PORT, BURST_RX_PIN))
     {
-//        sprintf(debugUART, "RECB ");
+//#ifdef DEBUG
+//        sprintf(debugUART, "BURSTREC ");
 //        UART_TXData(debugUART, strlen(debugUART));
+//#endif
 
         if ((nodeStatus != BURST_TX) && (dataStatus == DATA_WAIT))
         {
-//            sprintf(debugUART, "0 ");
-//            UART_TXData(debugUART, strlen(debugUART));
             timerValue = TA2R;
 
             {
@@ -170,13 +170,7 @@ __interrupt void interruptBurstRX(void)
                     NODE_ID_CR = TASSEL_2 + MC_2 + NODE_IDENTIFICATION_DIVIDER; //250khz --> SMCLK 1MHZ!!!
                     BURST_TIMEOUT_CR = TASSEL_1 + MC_1 + ID_3;
                 }
-                if (count == 20)
-                {
-                    NODE_ID_CR = TASSEL_2 + MC_0 + ID_0; //Stop timer
-                }
                 count++;
-//                sprintf(debugUART, "%d ", count);
-//                UART_TXData(debugUART, strlen(debugUART));
                 BURST_TIMEOUT_EV = 0; //Stop timer
                 BURST_TIMEOUT_EV = TIMEOUT; //restart timer to avoid glitches
 
@@ -192,29 +186,28 @@ __interrupt void interruptBurstRX(void)
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
-
-
+//NODE IDENTIFICATION (FREQUENCY CALCULATION)
 #pragma vector = NODE_ID
 __interrupt void frequencyAllocation(void)
 {
     BURST_TIMEOUT_CR = TASSEL_1 + MC_0 + ID_3; //Stop timer
     NODE_ID_CR = TASSEL_2 + MC_0 + ID_0; //Stop timer
-
-//    sprintf(debugUART, "C: %d ", count);
-//    UART_TXData(debugUART, strlen(debugUART));
+#ifdef DEBUG
+    sprintf(debugUART, "C: %d ", count);
+    UART_TXData(debugUART, strlen(debugUART));
+#endif
 
     if (count > (64 - BURST_GUARD))
     {
-        frequency = (float) NODE_IDENTIFICATION_SPEED / ((float) timerValue / (float) 21);
-//        sprintf(debugUART, "F %.1f ", frequency);
-//        UART_TXData(debugUART, strlen(debugUART));
+        frequency = ((float) NODE_IDENTIFICATION_SPEED * (float) (count+1)) / ((float) timerValue);
+#ifdef DEBUG
+        sprintf(debugUART, "F %.6f ", frequency);
+        UART_TXData(debugUART, strlen(debugUART));
+#endif
 
         int i;
         for (i = 0; i < NODES; i++)
         {
-//            if((frequency > (OOK_NODE_INCOME[i] - 2.5)) && (frequency < (OOK_NODE_INCOME[i] + 2.5)))
-//            if (frequency > ((OOK_NODE_INCOME[i] + 2.5) - 5))
             if (frequency < OOK_NODE_INCOME[i] + 1)
             {
                 if (count > ((LONG_BURST - BURST_GUARD) - 1))
@@ -229,9 +222,10 @@ __interrupt void frequencyAllocation(void)
                 {
                     nodeState[i] = SHORT_BURST;
                 }
-
-//                sprintf(debugUART, "NODE%d %d ", i, nodeState[i]);
-//                UART_TXData(debugUART, strlen(debugUART));
+#ifdef DEBUG
+                sprintf(debugUART, "NODE%d %d --", i, nodeState[i]);
+                UART_TXData(debugUART, strlen(debugUART));
+#endif
                 break;
 
             }
@@ -248,7 +242,7 @@ __interrupt void frequencyAllocation(void)
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
+//HANDLER TIMER NODE IDENTIFICATION, NEEDED OTHERWISE BOARD STAYS STUCK
 #pragma vector = TIMER2_A0_VECTOR
 __interrupt void T2A0_ISR(void)
 {
@@ -259,7 +253,7 @@ __interrupt void T2A0_ISR(void)
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
+//FUNCTION TO CHECK IF CAN SEND TO THE CHOOSEN NODE
 int canSendTRAP(int choosenNode)
 {
 
@@ -278,6 +272,7 @@ int canSendTRAP(int choosenNode)
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+//FUNCTION TO INITIALIZE GPIO FOR TRAP, GPIO DEFINED IN TRAP.H FILE
 void TRAPGPIO()
 {
 //    BURST RX
@@ -298,6 +293,7 @@ void TRAPGPIO()
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+//FUNCTION TO RESET NODE BURST VALUE AFTER SENDING
 void resetTRAP(int nodeNumber){
     nodeState[nodeNumber] = 0;
     burstValue = 0;

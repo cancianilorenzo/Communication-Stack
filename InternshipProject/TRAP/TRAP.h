@@ -1,11 +1,27 @@
-/*
- Lorenzo Canciani
- lorenzo.canciani@studenti.unitn.it
- 2022
- */
-
 #ifndef TRAP_H_
 #define TRAP_H_
+
+#define DEBUG 0
+#define NODES 2
+
+
+/************ ON/OFF KEY MODULATION FREQUENCY IN khz ***********/
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+#define OOK_NODE 10 //Current node frequency
+extern int OOK_NODE_INCOME[NODES];
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+
+/************ HANDLER PIN DEFINITION ***********/
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+//HANDLER DEFINITION
+#define BURST_RX_VECTOR PORT1_VECTOR
+//GPIO DEFINITION
+#define BURST_RX_PORT GPIO_PORT_P1
+#define BURST_RX_PIN GPIO_PIN4
+#define BURST_TX_PORT GPIO_PORT_P1
+#define BURST_TX_PIN GPIO_PIN3
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /************ TIMER REGISTERS DEFINITION ***********/
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
@@ -27,8 +43,8 @@
 #define BURST_REPETITION_CCCR TA1CCTL0
 #define BURST_REPETITION_CR TA1CTL
 #define BURST_REPETITION_EV TA1CCR0
-//VALUE FOR BURST REPETITION
 
+//VALUE FOR BURST REPETITION
 //FOR CLOCK AT 8MHZ
 //#define BURST_REPETITION_PERIOD 500 //For repeat the burst every 1 second
 //FOR CLOCK AT 16MHZ
@@ -54,19 +70,6 @@
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 
-
-/************ HANDLER PIN DEFINITION ***********/
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-//HANDLER DEFINITION
-#define BURST_RX_VECTOR PORT1_VECTOR
-//GPIO DEFINITION
-#define BURST_RX_PORT GPIO_PORT_P1
-#define BURST_RX_PIN GPIO_PIN4
-#define BURST_TX_PORT GPIO_PORT_P1
-#define BURST_TX_PIN GPIO_PIN3
-
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
 /************ NODE STATUS TO AVOID CONFLICTS IN RX/TX ***********/
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 extern int nodeStatus;
@@ -87,26 +90,14 @@ extern int nodeStatus;
 #define BURST_GUARD 40 //Burst Guard
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
-
-//Timeout in BURST RX
+/************ TIMEOUT BURST FOR RX ***********/
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
 #define TIMEOUT   15
-
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+
 /************ ARRAY TO STORE NODE STATE ***********/
-#define NODES 2
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
 extern int nodeState[];
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-/************ ON/OFF KEY MODULATION FREQUENCY IN khz ***********/
-#define OOK_NODE 15 //Current node --> used for send pulses
-//#define OOK_NODE_0 25 //Node 1 --> used to identify node
-//#define OOK_NODE_1 35 //Node 2 --> used to identify node
-
-//int OOK_NODE_INCOME[NODES-1];
-//extern int OOK_NODE_INCOME[NODES]; //NOT A GOOD APPROACH; OTHERWISE I CANNOT COMPILE!!!
-extern int OOK_NODE_INCOME[NODES]; /*= {10, 15, 20, 25, 30, 35, 40, 45, 50 };*/
-//int OOK_NODE_INCOME[] = {15, 20, 25, 30, 35, 40, 45, 50};
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 
