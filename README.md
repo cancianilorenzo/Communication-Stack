@@ -11,6 +11,7 @@
 - [Description](#description)
 - [Setup](#setup)
 - [Usage](#usage)
+- [Example](#example)
 
 ### Description
 TRAP folder contains TRAP.c and TRAP.h files that permit to use TRAP (TRAnsiently-powered Protocol) with an arbitrary number of MSP430 boards.
@@ -100,7 +101,7 @@ int OOK_NODE_INCOME[NODES] = {10, 35};
 
 Now that everything is set up for your needs, let's move on usage
 <br>
-Library expose few functions ready to go, you need to put this before your main function and then you can forget about TRAP, it will keep going in the backgroud
+Library expose few functions ready to go, you need to put this at the begin of your main function and then you can forget about TRAP, it will keep going in the backgroud
 ```
 TRAPGPIO(); //Initialize GPIO needed from TRAP
 TRAPTimer(); //Start TRAP timers, so TRAP as it is based on timers
@@ -116,6 +117,88 @@ This function will return 1 if the send can be done, 0 otherwise.
 <br><br>
 After the data sending you need to notify TRAP to update saved energy level of nodes, you can do this easily calling the following function
 ```
-cresetTRAP(0);
+resetTRAP(0);
 ```
 Passing, again, as argument the position of the node in the previously defined OOK_NODE_INCOME array
+
+### Example
+
+The example below shows a configuration for communication between two nodes. For the TRAP.c and TRAP.h files, only the portions modified according to the instructions given in [setup](#setup).
+<br>
+<p>NODE 0</p>
+TRAP.h
+
+```
+#define NODES 2
+...
+#define OOK_NODE 15 //Current node frequency
+...
+//HANDLER DEFINITION
+#define BURST_RX_VECTOR PORT3_VECTOR
+//GPIO DEFINITION
+#define BURST_RX_PORT GPIO_PORT_P3
+#define BURST_RX_PIN GPIO_PIN0
+#define BURST_TX_PORT GPIO_PORT_P1
+#define BURST_TX_PIN GPIO_PIN2
+```
+As you can see NODE0 receive burst on pin 3.0 and send burst from pin 1.2
+
+TRAP.c
+
+```
+int OOK_NODE_INCOME[NODES] = {15, 25};
+```
+<br>
+<p>NODE 1</p>
+TRAP.h
+
+```
+#define NODES 2
+...
+#define OOK_NODE 25 //Current node frequency
+...
+//HANDLER DEFINITION
+#define BURST_RX_VECTOR PORT1_VECTOR
+//GPIO DEFINITION
+#define BURST_RX_PORT GPIO_PORT_P1
+#define BURST_RX_PIN GPIO_PIN2
+#define BURST_TX_PORT GPIO_PORT_P3
+#define BURST_TX_PIN GPIO_PIN0
+```
+As you can see NODE0 receive burst on pin 1.2 and send burst from pin 3.0
+
+TRAP.c
+
+```
+int OOK_NODE_INCOME[NODES] = {15, 25};
+```
+
+<br>
+APPLICATION FOR NODE0
+
+```
+int main(void){
+TRAPGPIO();
+TRAPTimer();
+
+if (canSendTRAP(1)){
+  //SEND_DATA();
+  resetTRAP(1);
+}
+
+```
+
+<br>
+APPLICATION FOR NODE1
+
+```
+int main(void){
+TRAPGPIO();
+TRAPTimer();
+
+if (canSendTRAP(0)){
+  //SEND_DATA();
+  resetTRAP(0);
+}
+
+```
