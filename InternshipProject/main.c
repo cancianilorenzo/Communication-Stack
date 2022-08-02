@@ -35,11 +35,11 @@ int main(void)
 //        }
 //        if (dataToSend())
 //        {
-        if (canSendTRAP(0))
-        {
-            dataSend("0111101101", 0);
-            resetTRAP(0);
-        }
+//        if (canSendTRAP(0))
+//        {
+//            dataSend("0111101101", 0);
+//            resetTRAP(0);
+//        }
 //        }
     }
 
