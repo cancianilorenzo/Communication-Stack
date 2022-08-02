@@ -85,7 +85,9 @@ For convenience I have implemented a debug mode that allows information (includi
 //#define DEBUG 0
 ```
 
-Output with DEBUG option <img src="https://github.com/cancianilorenzo/TRAP-on-MSP430FR/blob/main/OutputDebug.png">
+Output with DEBUG option 
+<br>
+<img src="https://github.com/cancianilorenzo/TRAP-on-MSP430FR/blob/main/OutputDebug.png">
 
 <b><p>TRAP.c file</p></b>
 <br>
