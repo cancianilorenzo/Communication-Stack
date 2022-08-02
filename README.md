@@ -88,6 +88,8 @@ For convenience I have implemented a debug mode that allows information (includi
 Output with DEBUG option 
 <br>
 <img src="https://github.com/cancianilorenzo/TRAP-on-MSP430FR/blob/main/OutputDebug.png">
+<br>
+C: "Pulses counted" F "Calculated frequency" NODE"X" "Energy level stored"
 
 <b><p>TRAP.c file</p></b>
 <br>
