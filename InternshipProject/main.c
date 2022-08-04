@@ -26,6 +26,10 @@ int main(void)
 
     while (1)
     {
+//        dataSend("1010101011001010");
+//        break;
+//        sprintf(message, "%s ", intToBinary(11, 8));
+//        UART_TXData(message, strlen(message));
 
 //        if (!dataToSend())
 //        {
@@ -37,7 +41,7 @@ int main(void)
 //        {
 //        if (canSendTRAP(0))
 //        {
-//            dataSend("0111101101", 0);
+//            //dataSend("0111101101", 0);
 //            resetTRAP(0);
 //        }
 //        }

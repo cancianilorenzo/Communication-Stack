@@ -37,46 +37,18 @@ void interruptEnergy(void);
 
 
 //DATA_TX PORT
-#define DATA_TX_PORT_0 GPIO_PORT_P2
-//#define DATA_TX_PORT_1 GPIO_PORT_P1
-//#define DATA_TX_PORT_2
-//#define DATA_TX_PORT_3
-//#define DATA_TX_PORT_4
-//#define DATA_TX_PORT_5
-//#define DATA_TX_PORT_6
-//#define DATA_TX_PORT_7
+#define DATA_TX_PORT GPIO_PORT_P2
 
 //DATA_TX PIN
-#define DATA_TX_PIN_0 GPIO_PIN6
-//#define DATA_TX_PIN_1 GPIO_PIN5
-//#define DATA_TX_PIN_2
-//#define DATA_TX_PIN_3
-//#define DATA_TX_PIN_4
-//#define DATA_TX_PIN_5
-//#define DATA_TX_PIN_6
-//#define DATA_TX_PIN_7
+#define DATA_TX_PIN GPIO_PIN6
 
 //DATA_RX VECTOR
-#define DATA_RX_VECTOR PORT8_VECTOR
+#define DATA_RX_VECTOR PORT3_VECTOR
 //DATA_TX PORT
-#define DATA_RX_PORT_0 GPIO_PORT_P8
-//#define DATA_RX_PORT_1 GPIO_PORT_P3
-//#define DATA_RX_PORT_2
-//#define DATA_RX_PORT_3
-//#define DATA_RX_PORT_4
-//#define DATA_RX_PORT_5
-//#define DATA_RX_PORT_6 GPIO_PORT_P3
-//#define DATA_RX_PORT_7
+#define DATA_RX_PORT GPIO_PORT_P3
 
 //DATA_RX PIN
-#define DATA_RX_PIN_0 GPIO_PIN0
-//#define DATA_RX_PIN_1 GPIO_PIN1
-//#define DATA_RX_PIN_2
-//#define DATA_RX_PIN_3
-//#define DATA_RX_PIN_4
-//#define DATA_RX_PIN_5
-//#define DATA_RX_PIN_6 GPIO_PIN6
-//#define DATA_RX_PIN_7
+#define DATA_RX_PIN GPIO_PIN0
 
 
 
@@ -118,6 +90,11 @@ extern int dataStatus;
 extern char message[];
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+#define SIZE_ID 8
+#define NODE_NUMBER 11
+#define DATA_SIZE 40
+#define CRC_SEED  0xBEEF
+
 
 
 void initBoard();
@@ -130,13 +107,15 @@ void UART_TXData();
 
 
 int FRAMWrite(char*); //Function to write on FRAM
-void dataSend(char*, int);
+void dataSend(char*);
 int dataToSend();
-
-
-void interruptON(int);
-void interruptOFF(int);
-int readPin(int);
+char* stringToBinary(char*);
+char* intToBinary(int, int);
+int binaryToInt(char*, int);
+void parseData();
+void setID();
+void setData();
+void setCRC();
 
 
 

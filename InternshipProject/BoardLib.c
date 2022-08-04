@@ -2,9 +2,9 @@
 #include <msp430.h>
 #include "driverlib.h"
 #include <stdlib.h>
+#include <string.h>
 
 /*FOR DEBUG*/
-#include <string.h>
 #include <stdio.h>
 
 char message[MSG_SIZE];
@@ -12,25 +12,14 @@ char message[MSG_SIZE];
 char dataStore[1000] = "c";
 char store = '0';
 
+int dataStatus = DATA_WAIT;
+
 //DATA_TX
-int TX = -1;
-char auxString[RX_SIZE];
-int currentSend = 0;
-
-//-----------------------------------
-//memset(dataStored.data, 0, sizeof(dataStored.data));
-//dataStored.state = '0';
-//------------------------------------------
-
-int received = 0;
-int RX = -1;
-char dataRec[RX_SIZE];
-int dataStatus;
-
-int currentDataBuffer = 0;
-int alreadyRec = 0;
-
-//int x = 1;
+char TX_message[DATA_SIZE + 1];
+char RX_message[DATA_SIZE + 1];
+char RX_nodeId[8 + 1] = "00000000\0";
+char RX_data[16 + 1] = "0000000000000000\0";
+char RX_CRC[16 + 1] = "0000000000000000\0";
 
 //Energy simulation
 int energyLevel = 0;
@@ -107,111 +96,28 @@ void setBoardFrequency()
 void pinDeclaration()
 {
     //RX
-#ifdef DATA_RX_PORT_0
-    //node0
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT_0, DATA_RX_PIN_0);
-    GPIO_selectInterruptEdge(DATA_RX_PORT_0, DATA_RX_PIN_0,
-    GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT_0, DATA_RX_PIN_0);
-    GPIO_enableInterrupt(DATA_RX_PORT_0, DATA_RX_PIN_0);
-#endif
+    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT, DATA_RX_PIN);
+    GPIO_selectInterruptEdge(DATA_RX_PORT, DATA_RX_PIN,
+    GPIO_LOW_TO_HIGH_TRANSITION);
+    GPIO_clearInterrupt(DATA_RX_PORT, DATA_RX_PIN);
+    GPIO_enableInterrupt(DATA_RX_PORT, DATA_RX_PIN);
 
-#ifdef DATA_RX_PORT_1
-    //node1
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT_1, DATA_RX_PIN_1);
-    GPIO_selectInterruptEdge(DATA_RX_PORT_1, DATA_RX_PIN_1,
+    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P5, GPIO_PIN5);
+    GPIO_selectInterruptEdge(GPIO_PORT_P5, GPIO_PIN5,
     GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT_1, DATA_RX_PIN_1);
-    GPIO_enableInterrupt(DATA_RX_PORT_1, DATA_RX_PIN_1);
-#endif
+    GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN5);
+    GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN5);
 
-#ifdef DATA_RX_PORT_2
-    //node2
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT_2, DATA_RX_PIN_2);
-    GPIO_selectInterruptEdge(DATA_RX_PORT_2, DATA_RX_PIN_2,
+    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P5, GPIO_PIN6);
+    GPIO_selectInterruptEdge(GPIO_PORT_P5, GPIO_PIN6,
     GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT_2, DATA_RX_PIN_2);
-    GPIO_enableInterrupt(DATA_RX_PORT_2, DATA_RX_PIN_2);
-    #endif
-
-#ifdef DATA_RX_PORT_3
-    //node3
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT_3, DATA_RX_PIN_3);
-    GPIO_selectInterruptEdge(DATA_RX_PORT_3, DATA_RX_PIN_3,
-    GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT_3, DATA_RX_PIN_3);
-    GPIO_enableInterrupt(DATA_RX_PORT_3, DATA_RX_PIN_3);
-    #endif
-
-#ifdef DATA_RX_PORT_4
-    //node4
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT_4, DATA_RX_PIN_4);
-    GPIO_selectInterruptEdge(DATA_RX_PORT_4, DATA_RX_PIN_4,
-    GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT_4, DATA_RX_PIN_4);
-    GPIO_enableInterrupt(DATA_RX_PORT_4, DATA_RX_PIN_4);
-    #endif
-
-#ifdef DATA_RX_PORT_5
-    //node5
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT_5, DATA_RX_PIN_5);
-    GPIO_selectInterruptEdge(DATA_RX_PORT_5, DATA_RX_PIN_5,
-    GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT_5, DATA_RX_PIN_5);
-    GPIO_enableInterrupt(DATA_RX_PORT_1, DATA_RX_PIN_1);
-    #endif
-
-#ifdef DATA_RX_PORT_6
-    //node6
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT_6, DATA_RX_PIN_6);
-    GPIO_selectInterruptEdge(DATA_RX_PORT_6, DATA_RX_PIN_6,
-    GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT_6, DATA_RX_PIN_6);
-    GPIO_enableInterrupt(DATA_RX_PORT_6, DATA_RX_PIN_6);
-    #endif
-
-#ifdef DATA_RX_PORT_7
-    //node7
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT_7, DATA_RX_PIN_7);
-    GPIO_selectInterruptEdge(DATA_RX_PORT_7, DATA_RX_PIN_7,
-    GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT_7, DATA_RX_PIN_7);
-    GPIO_enableInterrupt(DATA_RX_PORT_7, DATA_RX_PIN_7);
-    #endif
+    GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN6);
+    GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN6);
 
     //TX
-#ifdef DATA_TX_PORT_0
-    GPIO_setAsOutputPin(DATA_TX_PORT_0, DATA_TX_PIN_0);
-#endif
-
-#ifdef DATA_RX_PORT_1
-    GPIO_setAsOutputPin(DATA_TX_PORT_1, DATA_TX_PIN_1);
-#endif
-
-#ifdef DATA_RX_PORT_7
-    GPIO_setAsOutputPin(DATA_TX_PORT_2, DATA_TX_PIN_2);
-    #endif
-
-#ifdef DATA_RX_PORT_7
-    GPIO_setAsOutputPin(DATA_TX_PORT_3, DATA_TX_PIN_3);
-    #endif
-
-#ifdef DATA_RX_PORT_7
-    GPIO_setAsOutputPin(DATA_TX_PORT_4, DATA_TX_PIN_4);
-    #endif
-
-#ifdef DATA_RX_PORT_7
-    GPIO_setAsOutputPin(DATA_TX_PORT_5, DATA_TX_PIN_5);
-    #endif
-
-#ifdef DATA_RX_PORT_7
-    GPIO_setAsOutputPin(DATA_TX_PORT_6, DATA_TX_PIN_6);
-    #endif
-
-#ifdef DATA_RX_PORT_7
-    GPIO_setAsOutputPin(DATA_TX_PORT_7, DATA_TX_PIN_7);
-    #endif
-
+    GPIO_setAsOutputPin(DATA_TX_PORT, DATA_TX_PIN);
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
 }
 
 void UART_TXData(char *c, size_t size)
@@ -240,288 +146,6 @@ void startEnergySimulation()
     energy_increment = rand() % (ENERGY_INCREMENT + 1);
 }
 
-int readPin(int number)
-{
-    int value = 0;
-#ifdef DATA_RX_PIN_0
-    if (number == 0)
-    {
-        if (GPIO_INPUT_PIN_HIGH
-                == GPIO_getInputPinValue(DATA_RX_PORT_0, DATA_RX_PIN_0))
-        {
-            value = 1;
-        }
-    }
-#endif
-
-#ifdef DATA_RX_PIN_1
-    if (number == 1)
-    {
-
-        if (GPIO_INPUT_PIN_HIGH
-                == GPIO_getInputPinValue(DATA_RX_PORT_1, DATA_RX_PIN_1))
-        {
-            value = 1;
-        }
-    }
-#endif
-
-#ifdef DATA_RX_PIN_2
-    if (number == 2)
-    {
-
-        if (GPIO_INPUT_PIN_HIGH
-                == GPIO_getInputPinValue(DATA_RX_PORT_2, DATA_RX_PIN_2))
-        {
-            value = 1;
-        }
-    }
-#endif
-
-#ifdef DATA_RX_PIN_3
-    if (number == 3)
-    {
-
-        if (GPIO_INPUT_PIN_HIGH
-                == GPIO_getInputPinValue(DATA_RX_PORT_3, DATA_RX_PIN_3))
-        {
-            value = 1;
-        }
-    }
-#endif
-
-#ifdef DATA_RX_PIN_4
-    if (number == 4)
-    {
-
-        if (GPIO_INPUT_PIN_HIGH
-                == GPIO_getInputPinValue(DATA_RX_PORT_4, DATA_RX_PIN_4))
-        {
-            value = 1;
-        }
-    }
-#endif
-
-#ifdef DATA_RX_PIN_5
-    if (number == 5)
-    {
-
-        if (GPIO_INPUT_PIN_HIGH
-                == GPIO_getInputPinValue(DATA_RX_PORT_5, DATA_RX_PIN_5))
-        {
-            value = 1;
-        }
-    }
-#endif
-
-#ifdef DATA_RX_PIN_6
-    if (number == 6)
-    {
-
-        if (GPIO_INPUT_PIN_HIGH
-                == GPIO_getInputPinValue(DATA_RX_PORT_6, DATA_RX_PIN_6))
-        {
-            value = 1;
-        }
-    }
-#endif
-
-#ifdef DATA_RX_PIN_7
-    if (number == 7)
-    {
-
-        if (GPIO_INPUT_PIN_HIGH
-                == GPIO_getInputPinValue(DATA_RX_PORT_7, DATA_RX_PIN_7))
-        {
-            value = 1;
-        }
-    }
-#endif
-
-    return value;
-}
-
-void interruptON(int number)
-{
-
-    //Edit with SWITCH case
-#ifdef DATA_RX_PIN_0
-    if (number == 0)
-    {
-
-        GPIO_enableInterrupt(DATA_RX_PORT_0, DATA_RX_PIN_0);
-    }
-#endif
-
-#ifdef DATA_RX_PIN_1
-    if (number == 1)
-    {
-
-        GPIO_enableInterrupt(DATA_RX_PORT_1, DATA_RX_PIN_1);
-    }
-#endif
-
-#ifdef DATA_RX_PIN_2
-    if (number == 2)
-    {
-
-        GPIO_enableInterrupt(DATA_RX_PORT_2, DATA_RX_PIN_2);
-    }
-#endif
-
-#ifdef DATA_RX_PIN_3
-    if (number == 3)
-    {
-
-        GPIO_enableInterrupt(DATA_RX_PORT_3, DATA_RX_PIN_3);
-    }
-#endif
-
-#ifdef DATA_RX_PIN_4
-    if (number == 4)
-    {
-
-        GPIO_enableInterrupt(DATA_RX_PORT_4, DATA_RX_PIN_4);
-    }
-#endif
-
-#ifdef DATA_RX_PIN_5
-    if (number == 5)
-    {
-
-        GPIO_enableInterrupt(DATA_RX_PORT_5, DATA_RX_PIN_5);
-    }
-#endif
-
-#ifdef DATA_RX_PIN_6
-    if (number == 6)
-    {
-
-        GPIO_enableInterrupt(DATA_RX_PORT_6, DATA_RX_PIN_6);
-    }
-#endif
-
-#ifdef DATA_RX_PIN_7
-    if (number == 7)
-    {
-
-        GPIO_enableInterrupt(DATA_RX_PORT_7, DATA_RX_PIN_7);
-    }
-#endif
-    received = 0;
-    TA0CCR0 = ENERGY_UPDATE_RATE;
-    RX = -1;
-    dataStatus = DATA_WAIT;
-}
-
-void PinHigh(int number)
-{
-#ifdef DATA_TX_PIN_0
-    if (number == 0)
-    {
-        GPIO_setOutputHighOnPin(DATA_TX_PORT_0, DATA_TX_PIN_0);
-    }
-#endif
-
-#ifdef DATA_TX_PIN_1
-    if (number == 1)
-    {
-        GPIO_setOutputHighOnPin(DATA_TX_PORT_1, DATA_TX_PIN_1);
-    }
-#endif
-
-#ifdef DATA_TX_PIN_2
-    if(number == 2){
-        GPIO_setOutputHighOnPin(DATA_TX_PORT_2, DATA_TX_PIN_2);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_3
-    if(number == 3){
-        GPIO_setOutputHighOnPin(DATA_TX_PORT_3, DATA_TX_PIN_3);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_4
-    if(number == 4){
-        GPIO_setOutputHighOnPin(DATA_TX_PORT_4, DATA_TX_PIN_4);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_5
-    if(number == 5){
-        GPIO_setOutputHighOnPin(DATA_TX_PORT_5, DATA_TX_PIN_5);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_6
-    if(number == 6){
-        GPIO_setOutputHighOnPin(DATA_TX_PORT_6, DATA_TX_PIN_6);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_7
-    if(number == 7){
-        GPIO_setOutputHighOnPin(DATA_TX_PORT_7, DATA_TX_PIN_7);
-        }
-#endif
-
-}
-
-void PinLow(int number)
-{
-#ifdef DATA_TX_PIN_0
-    if (number == 0)
-    {
-        GPIO_setOutputLowOnPin(DATA_TX_PORT_0, DATA_TX_PIN_0);
-    }
-#endif
-
-#ifdef DATA_TX_PIN_1
-    if (number == 1)
-    {
-        GPIO_setOutputLowOnPin(DATA_TX_PORT_1, DATA_TX_PIN_1);
-    }
-#endif
-
-#ifdef DATA_TX_PIN_2
-    if(number == 2){
-            GPIO_setOutputLowOnPin(DATA_TX_PORT_2, DATA_TX_PIN_2);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_3
-    if(number == 3){
-            GPIO_setOutputLowOnPin(DATA_TX_PORT_3, DATA_TX_PIN_3);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_4
-    if(number == 4){
-            GPIO_setOutputLowOnPin(DATA_TX_PORT_4, DATA_TX_PIN_4);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_5
-    if(number == 5){
-            GPIO_setOutputLowOnPin(DATA_TX_PORT_5, DATA_TX_PIN_5);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_6
-    if(number == 6){
-            GPIO_setOutputLowOnPin(DATA_TX_PORT_6, DATA_TX_PIN_6);
-        }
-#endif
-
-#ifdef DATA_TX_PIN_7
-    if(number == 7){
-            GPIO_setOutputLowOnPin(DATA_TX_PORT_7, DATA_TX_PIN_7);
-        }
-#endif
-
-}
-
 #pragma vector = TIMER0_A0_VECTOR
 __interrupt void interruptEnergy(void)
 {
@@ -529,7 +153,7 @@ __interrupt void interruptEnergy(void)
 //    sprintf(message, "DSI %d ", dataStatus);
 //    UART_TXData(message, strlen(message));
 
-    if (dataStatus == DATA_WAIT && RX == -1)
+    if (dataStatus == DATA_WAIT)
     {
         int energy_step = rand() % (energy_increment + 1);
         energyLevel = energyLevel + energy_step;
@@ -550,175 +174,121 @@ __interrupt void interruptEnergy(void)
 //        sprintf(message, "UE ");
 //        UART_TXData(message, strlen(message));
     }
-
-    //-------------RX----------------------
-    if (dataStatus == DATA_RX && RX != -1)
+    if (dataStatus == DATA_RX)
     {
-        if (received != RX_SIZE)
+        unsigned int aux;
+        GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
+        sprintf(message, "RX ");
+        UART_TXData(message, strlen(message));
+        sprintf(RX_message, "0000101110101010110010100110000001111111");
+//        unsigned int i;
+//        for (i = 0; i < DATA_SIZE; i++)
+//        {
+//            aux = rand() % 2;
+//            if (aux == 1)
+//            {
+//                RX_message[i] = '1';
+//            }
+//            else
+//            {
+//                RX_message[i] = '0';
+//            }
+//        }
+
+        setID();
+        setData();
+        setCRC();
+
+//        sprintf(message, "%s ", RX_nodeId);
+//        UART_TXData(message, strlen(message));
+//
+//        sprintf(message, "%s ", RX_data);
+//        UART_TXData(message, strlen(message));
+//
+//        sprintf(message, "%s ", RX_CRC);
+//        UART_TXData(message, strlen(message));
+        unsigned int CRCResult;
+        long toCheck = binaryToInt(RX_data,2);
+        CRC_setSeed(CRC_BASE, CRC_SEED);
+        CRC_set16BitData(CRC_BASE, toCheck);
+        CRCResult = CRC_getResult(CRC_BASE);
+        sprintf(message, "%d == %d ", CRCResult,binaryToInt(RX_CRC,2));
+        UART_TXData(message, strlen(message));
+        if (CRCResult == binaryToInt(RX_CRC,2))
         {
-            if (readPin(RX))
-            {
-                dataRec[received] = '1';
-//                sprintf(message, "1 ");
-//                UART_TXData(message, strlen(message));
-            }
-            else
-            {
-                dataRec[received] = '0';
-//                sprintf(message, "0 ");
-//                UART_TXData(message, strlen(message));
-            }
-
-            received++;
-
+            sprintf(message, "DOK CS DATA: %s ID: %d", RX_data, binaryToInt(RX_nodeId,2));
+            UART_TXData(message, strlen(message));
+            //saveDATA
         }
         else
         {
-            sprintf(message, "REC%d ", RX);
+            sprintf(message, "DERR ");
             UART_TXData(message, strlen(message));
-//            int i;
-//            for (i = 0; i < RX_SIZE; i++)
-//            {
-//                sprintf(message, "%c ", dataRec[i]);
-//                UART_TXData(message, strlen(message));
-//            }
-//            sprintf(message, "-- ");
-//            UART_TXData(message, strlen(message));
-            interruptON(RX);
-            dataStatus = DATA_WAIT;
-
         }
+
+        TA0CCR0 = 0;
+        TA0CCR0 = ENERGY_UPDATE_RATE;
+        dataStatus = DATA_WAIT;
     }
+}
 
-    //-------------TX----------------------
-        if (dataStatus == DATA_TX && TX != -1)
-        {
-            if (currentSend != strlen(auxString))
-            {
-                if (auxString[currentSend] == '1')
-                {
-                    PinHigh(TX);
-                    //GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
-//                    sprintf(message, "1 ");
-//                    UART_TXData(message, strlen(message));
-                }
-                else
-                {
-                    PinLow(TX);
-    //                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN2);
-//                    sprintf(message, "0 ");
-//                    UART_TXData(message, strlen(message));
-                }
-                currentSend++;
-            }
-            else
-            {
-                sprintf(message, "SEND ");
-                UART_TXData(message, strlen(message));
-                dataStatus = DATA_WAIT;
-                currentSend = 0;
-                TX = -1;
-                TA0CCR0 = 0;
-                TA0CCR0 = ENERGY_UPDATE_RATE;
-            }
-        }
+void setID()
+{
+    unsigned int RX;
+    unsigned int parsed;
+    parsed = 0;
+    for (RX = 0; RX < 8; RX++)
+    {
+        RX_nodeId[parsed] = RX_message[RX];
+        parsed++;
+    }
+//    RX_nodeId[parsed] = '\0';
+}
 
+void setData()
+{
+    unsigned int RX;
+    unsigned int parsed;
+    parsed = 0;
+    RX = 8;
+    for (RX = 8; RX < 24; RX++)
+    {
+        RX_data[parsed] = RX_message[RX];
+        parsed++;
+    }
+//    RX_data[parsed] = '\0';
+}
+
+void setCRC()
+{
+    unsigned int RX;
+    unsigned int parsed;
+    parsed = 0;
+    for (RX = 24; RX < 40; RX++)
+    {
+        RX_CRC[parsed] = RX_message[RX];
+        parsed++;
+    }
+//    RX_CRC[parsed] = '\0';
 }
 
 //------------------------------------------------------------ DATA RX
-
-void interruptOFF(int number)
-{
-    dataStatus = DATA_RX;
-#ifdef DATA_RX_PORT_0
-    if (number == 0)
-    {
-        GPIO_disableInterrupt(DATA_RX_PORT_0, DATA_RX_PIN_0);
-    }
-#endif
-
-#ifdef DATA_RX_PORT_1
-    if (number == 1)
-    {
-        GPIO_disableInterrupt(DATA_RX_PORT_1, DATA_RX_PIN_1);
-    }
-#endif
-
-#ifdef DATA_RX_PORT_2
-    if (number == 2)
-    {
-        GPIO_disableInterrupt(DATA_RX_PORT_2, DATA_RX_PIN_2);
-    }
-    #endif
-
-#ifdef DATA_RX_PORT_3
-    if (number == 3)
-    {
-        GPIO_disableInterrupt(DATA_RX_PORT_3, DATA_RX_PIN_3);
-    }
-    #endif
-
-#ifdef DATA_RX_PORT_4
-    if (number == 4)
-    {
-        GPIO_disableInterrupt(DATA_RX_PORT_4, DATA_RX_PIN_4);
-    }
-    #endif
-
-#ifdef DATA_RX_PORT_5
-    if (number == 5)
-    {
-        GPIO_disableInterrupt(DATA_RX_PORT_5, DATA_RX_PIN_5);
-    }
-    #endif
-
-#ifdef DATA_RX_PORT_6
-    if (number == 6)
-    {
-        GPIO_disableInterrupt(DATA_RX_PORT_6, DATA_RX_PIN_6);
-    }
-    #endif
-
-#ifdef DATA_RX_PORT_7
-    if (number == 7)
-    {
-        GPIO_disableInterrupt(DATA_RX_PORT_7, DATA_RX_PIN_7);
-    }
-    #endif
-
-    energyLevel = energyLevel - ENERGY_CONSUMED_RX;
-    TA0CCR0 = 0;
-    TA0CCR0 = RX_TX_RATE;
-}
-
 #pragma vector = DATA_RX_VECTOR
 __interrupt void P3_ISR(void)
 {
-
 // Data RX ISR
-#ifdef DATA_RX_PORT_0
 //    if (P3IFG & BIT0)
-    if (GPIO_getInterruptStatus(DATA_RX_PORT_0, DATA_RX_PIN_0))
+    if (GPIO_getInterruptStatus(DATA_RX_PORT, DATA_RX_PIN))
 
     {
 
         if (((energyLevel == ENERGY_CONSUMED_RX)
                 || (energyLevel > ENERGY_CONSUMED_RX))
-                && dataStatus == DATA_WAIT)
+        /*&& dataStatus == DATA_WAIT*/)
         {
-            if (alreadyRec == 0)
-            {
-                if (RX == -1)
-                {
-                    RX = 0;
-                    alreadyRec = 1;
-                    interruptOFF(RX);
-                }
-            }
-            else
-            {
-                alreadyRec = 0;
-            }
+            dataStatus = DATA_RX;
+            TA0CCR0 = 0;
+            TA0CCR0 = 250;
 
         }
         else
@@ -728,308 +298,193 @@ __interrupt void P3_ISR(void)
         }
 
 //        P3IFG &= ~BIT0;
-        GPIO_clearInterrupt(DATA_RX_PORT_0, DATA_RX_PIN_0);
+        GPIO_clearInterrupt(DATA_RX_PORT, DATA_RX_PIN);
 
     }
-#endif
-
-#ifdef DATA_RX_PORT_1
-//    if (P3IFG & BIT1)
-    if (GPIO_getInterruptStatus(DATA_RX_PORT_1, DATA_RX_PIN_1))
-
-    {
-
-        if (((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX))
-                && dataStatus == DATA_WAIT)
-        {
-            if (alreadyRec == 0)
-            {
-                if (RX == -1)
-                {
-                    RX = 1;
-                    alreadyRec = 1;
-                    interruptOFF(RX);
-                }
-            }
-            else
-            {
-                alreadyRec = 0;
-            }
-
-        }
-        else
-        {
-            sprintf(message, "ER31 "); //Error data reception
-            UART_TXData(message, strlen(message));
-        }
-
-//        P3IFG &= ~BIT1;
-        GPIO_clearInterrupt(DATA_RX_PORT_1, DATA_RX_PIN_1);
-
-    }
-#endif
-
-#ifdef DATA_RX_PORT_2
-//    if (P3IFG & BIT2)
-    if (GPIO_getInterruptStatus(DATA_RX_PORT_2, DATA_RX_PIN_2))
-
-    {
-
-        if (((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX))
-                && dataStatus == DATA_WAIT)
-        {
-            if (alreadyRec == 0)
-            {
-                if (RX == -1)
-                {
-                    RX = 2;
-                    alreadyRec = 1;
-                    interruptOFF(RX);
-                }
-            }
-            else
-            {
-                alreadyRec = 0;
-            }
-
-        }
-        else
-        {
-            sprintf(message, "ER32 "); //Error data reception
-            UART_TXData(message, strlen(message));
-        }
-
-//        P3IFG &= ~BIT2;
-        GPIO_clearInterrupt(DATA_RX_PORT_2, DATA_RX_PIN_2);
-
-    }
-#endif
-
-#ifdef DATA_RX_PORT_3
-//    if (P3IFG & BIT3)
-    if (GPIO_getInterruptStatus(DATA_RX_PORT_3, DATA_RX_PIN_3))
-
-    {
-
-        if (((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX))
-                && dataStatus == DATA_WAIT)
-        {
-            if (alreadyRec == 0)
-            {
-                if (RX == -1)
-                {
-                    RX = 3;
-                    alreadyRec = 1;
-                    interruptOFF(RX);
-                }
-            }
-            else
-            {
-                alreadyRec = 0;
-            }
-
-        }
-        else
-        {
-            sprintf(message, "ER33 "); //Error data reception
-            UART_TXData(message, strlen(message));
-        }
-
-//        P3IFG &= ~BIT3;
-        GPIO_clearInterrupt(DATA_RX_PORT_3, DATA_RX_PIN_3);
-
-    }
-#endif
-
-#ifdef DATA_RX_PORT_4
-//    if (P3IFG & BIT4)
-    if (GPIO_getInterruptStatus(DATA_RX_PORT_4, DATA_RX_PIN_4))
-
-    {
-
-        if (((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX))
-                && dataStatus == DATA_WAIT)
-        {
-            if (alreadyRec == 0)
-            {
-                if (RX == -1)
-                {
-                    RX = 4;
-                    alreadyRec = 1;
-                    interruptOFF(RX);
-                }
-            }
-            else
-            {
-                alreadyRec = 0;
-            }
-
-        }
-        else
-        {
-            sprintf(message, "ER34 "); //Error data reception
-            UART_TXData(message, strlen(message));
-        }
-
-//        P3IFG &= ~BIT4;
-        GPIO_clearInterrupt(DATA_RX_PORT_4, DATA_RX_PIN_4);
-    }
-#endif
-
-#ifdef DATA_RX_PORT_5
-//    if (P3IFG & BIT5)
-    if (GPIO_getInterruptStatus(DATA_RX_PORT_5, DATA_RX_PIN_5))
-
-    {
-
-        if (((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX))
-                && dataStatus == DATA_WAIT)
-        {
-            if (alreadyRec == 0)
-            {
-                if (RX == -1)
-                {
-                    RX = 5;
-                    alreadyRec = 1;
-                    interruptOFF(RX);
-                }
-            }
-            else
-            {
-                alreadyRec = 0;
-            }
-
-        }
-        else
-        {
-            sprintf(message, "ER35 "); //Error data reception
-            UART_TXData(message, strlen(message));
-        }
-
-//        P3IFG &= ~BIT5;
-        GPIO_clearInterrupt(DATA_RX_PORT_5, DATA_RX_PIN_5);
-    }
-#endif
-
-#ifdef DATA_RX_PORT_6
-//    if (P3IFG & BIT6)
-    if (GPIO_getInterruptStatus(DATA_RX_PORT_6, DATA_RX_PIN_6))
-
-    {
-
-        if (((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX))
-                && dataStatus == DATA_WAIT)
-        {
-            if (alreadyRec == 0)
-            {
-                if (RX == -1)
-                {
-                    RX = 6;
-                    alreadyRec = 1;
-                    interruptOFF(RX);
-                }
-            }
-            else
-            {
-                alreadyRec = 0;
-            }
-
-        }
-        else
-        {
-            sprintf(message, "ER36 "); //Error data reception
-            UART_TXData(message, strlen(message));
-        }
-
-//        P3IFG &= ~BIT6;
-        GPIO_clearInterrupt(DATA_RX_PORT_6, DATA_RX_PIN_6);
-
-    }
-#endif
-
-#ifdef DATA_RX_PORT_7
-//    if (P3IFG & BIT7)
-    if (GPIO_getInterruptStatus(DATA_RX_PORT_7, DATA_RX_PIN_7))
-    {
-
-        if (((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX))
-                && dataStatus == DATA_WAIT)
-        {
-            if (alreadyRec == 0)
-            {
-                if (RX == -1)
-                {
-                    RX = 7;
-                    alreadyRec = 1;
-                    interruptOFF(RX);
-                }
-            }
-            else
-            {
-                alreadyRec = 0;
-            }
-
-        }
-        else
-        {
-            sprintf(message, "ER37 "); //Error data reception
-            UART_TXData(message, strlen(message));
-        }
-
-//        P3IFG &= ~BIT7;
-        GPIO_clearInterrupt(DATA_RX_PORT_7, DATA_RX_PIN_7);
-
-    }
-#endif
 }
 
+///////////////////////////////
 
+#pragma vector = PORT5_VECTOR
+__interrupt void P5_ISR(void)
+{
+// Data RX ISR
+//    if (P3IFG & BIT0)
+    if (GPIO_getInterruptStatus(GPIO_PORT_P5, GPIO_PIN5))
+
+    {
+
+        if (((energyLevel == ENERGY_CONSUMED_RX)
+                || (energyLevel > ENERGY_CONSUMED_RX))
+        /*&& dataStatus == DATA_WAIT*/)
+        {
+            dataStatus = DATA_RX;
+            TA0CCR0 = 0;
+            TA0CCR0 = 250;
+
+        }
+        else
+        {
+            sprintf(message, "ER30 "); //Error data reception
+            UART_TXData(message, strlen(message));
+        }
+
+//        P3IFG &= ~BIT0;
+        GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN5);
+
+    }
+
+    if (GPIO_getInterruptStatus(GPIO_PORT_P5, GPIO_PIN6))
+
+    {
+//                sprintf(message, "%s ", RX_nodeId);
+//                UART_TXData(message, strlen(message));
+//
+//                sprintf(message, "%s ", RX_data);
+//                UART_TXData(message, strlen(message));
+//
+                sprintf(message, "%s ", RX_CRC);
+                UART_TXData(message, strlen(message));
+
+        GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN6);
+
+    }
+}
+
+//////////////////////////////
 
 int FRAMWrite(char *data)
 {
-int res = 0;
+    int res = 0;
 
-store = '0';
-sprintf(dataStore, data);
-store = '1'; //Succesfully stored in FRAM;
-res = 1;
+    store = '0';
+    sprintf(dataStore, data);
+    store = '1'; //Succesfully stored in FRAM;
+    res = 1;
 
-return res;
+    return res;
 }
 
-
-int dataToSend(){
+int dataToSend()
+{
     int res = 0;
-    if(store == '1'){
+    if (store == '1')
+    {
         res = 1;
     }
     return res;
 }
 
-void dataSend(char *messageToSend, int numberPort)
+char* stringToBinary(char *s)
 {
-    if (TX == -1)
+    //1byte for each char
+    if (s == NULL)
+        return 0; /* no input string */
+    size_t len = strlen(s);
+    char *binary = malloc(len * 8 + 1); // each char is one byte (8 bits) and + 1 at the end for null terminator
+    binary[0] = '\0';
+    size_t i;
+    for (i = 0; i < len; ++i)
     {
-        sprintf(auxString, messageToSend);
-//        sprintf(message, "%s ", auxString);
-//        UART_TXData(message, strlen(message));
-        TX = numberPort;
-        energyLevel = energyLevel - ENERGY_CONSUMED_TX;
-        dataStatus = DATA_TX;
-        TA0CCR0 = 0;
-        TA0CCR0 = RX_TX_RATE;
+        char ch = s[i];
+        int j;
+        for (j = 7; j >= 0; --j)
+        {
+            if (ch & (1 << j))
+            {
+                strcat(binary, "1");
+            }
+            else
+            {
+                strcat(binary, "0");
+            }
+        }
     }
+    return binary;
 }
 
+char* intToBinary(int n, int size)
+{
 
+    char *output;
+    unsigned int i;
+    int change;
+    unsigned int actualPos = 1;
+    output = (char*) malloc(size * sizeof(char));
+    for (i = 0; i < size + 1; ++i)
+    {
+        output[i] = '0';
+    }
+    output[size] = '\0';
 
+    for (i = 0; n > 0; i++)
+    {
+        change = n % 2;
+        if (change == 0)
+        {
+            output[size - actualPos] = '0';
+        }
+        if (change == 1)
+        {
+            output[size - actualPos] = '1';
+        }
+        actualPos++;
+        n = n / 2;
+    }
+    return output;
 
+}
 
+int binaryToInt(char *num, int base)
+{
+    char *eptr;
+    //int binary_num = atoi(num);
+    long binary_num = strtol(num, &eptr, base);
+//    int decimal_num = 0, base = 1, rem;
+//    sprintf(message, "--- BTI %d --- ",binary_num); //Error data reception
+//    UART_TXData(message, strlen(message));
+
+//    while (binary_num > 0)
+//    {
+//        rem = binary_num % 10; /* divide the binary number by 10 and store the remainder in rem variable. */
+//        decimal_num = decimal_num + rem * base;
+//        binary_num = binary_num / 10; // divide the number with quotient
+//        base = base * 2;
+//    }
+//    return decimal_num;
+    return binary_num;
+
+}
+
+void dataSend(char *messageToSend)
+{
+
+    strcat(TX_message, intToBinary(NODE_NUMBER, 8));
+    unsigned int CRCResult;
+    unsigned long toSend = binaryToInt(messageToSend, 2);
+    CRC_setSeed(CRC_BASE, CRC_SEED);
+    CRC_set16BitData(CRC_BASE, toSend);
+    CRCResult = CRC_getResult(CRC_BASE);
+    strcat(TX_message, messageToSend);
+    strcat(TX_message, intToBinary(CRCResult, 16));
+
+    sprintf(message, "SEND: %s ", TX_message); //Error data reception
+    UART_TXData(message, strlen(message));
+    unsigned int i = 0;
+    for (i = 0; i < strlen(TX_message); i++)
+    {
+        if (TX_message[i] == '1')
+        {
+            GPIO_setOutputHighOnPin(DATA_TX_PORT, DATA_TX_PIN);
+//            sprintf(message, "1");
+//            UART_TXData(message, strlen(message));
+        }
+        else
+        {
+            GPIO_setOutputLowOnPin(DATA_TX_PORT, DATA_TX_PIN);
+//            sprintf(message, "0");
+//            UART_TXData(message, strlen(message));
+        }
+    }
+}
 
