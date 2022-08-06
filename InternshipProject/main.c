@@ -8,7 +8,6 @@
 #include <string.h>
 
 int main(void)
-
 {
 
     initBoard();
@@ -17,34 +16,27 @@ int main(void)
     UARTInit();
     setTimers();
     startEnergySimulation();
+    FRAMInit();
 
     TRAPGPIO();
     TRAPTimer();
 
-    sprintf(message, "INIT0 ");
+    unsigned char primo = 0x02;
+    unsigned char secondo = 0x09;
+    sprintf(message, "ret %d ", primo < secondo);
     UART_TXData(message, strlen(message));
+
+    producedData("10100100111110011001111111110010");
+    producedData("111110011111001111111111111100111");
 
     while (1)
     {
-//        dataSend("1010101011001010");
-//        break;
-//        sprintf(message, "%s ", intToBinary(11, 8));
-//        UART_TXData(message, strlen(message));
-
-//        if (!dataToSend())
-//        {
-//            //dataProduction();
-//            //....
-//            //FRAMWrite(productData);
-//        }
-//        if (dataToSend())
-//        {
-//        if (canSendTRAP(0))
-//        {
-//            //dataSend("0111101101", 0);
-//            resetTRAP(0);
-//        }
-//        }
+        if (canGetData())
+        {
+            storedData data = getdata();
+            sprintf(message, "SDG %x ", data.saved);
+            UART_TXData(message, strlen(message));
+        }
     }
 
 }

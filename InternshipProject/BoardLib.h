@@ -4,7 +4,15 @@
 #include <string.h> //For memset
 
 
+#define FRAM_TX_NUMBER 0x03
 
+#define FRAM_RX_NUMBER 0x03
+
+
+#define BIT_MASK_0 0xBF //10111111
+#define BIT_MASK_1 0xFA //11111010
+#define BIT_MASK_2 0xEF //11101111
+#define BIT_MASK_3 0x7F //01111111
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /*Energy simulation params, can be remove in real world application*/
@@ -33,9 +41,6 @@ void interruptEnergy(void);
 //#define RX_TX_RATE 2
 
 
-
-
-
 //DATA_TX PORT
 #define DATA_TX_PORT GPIO_PORT_P2
 
@@ -51,28 +56,6 @@ void interruptEnergy(void);
 #define DATA_RX_PIN GPIO_PIN0
 
 
-
-
-#define RX_SIZE 10
-extern char dataRec[];
-
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-//typedef struct DATA
-//{
-//    char data[1000];
-//    char state;
-//} DATA;
-//
-////FRAM declaration
-//#pragma PERSISTENT(dataStored)
-//extern DATA dataStored = {.data = "c",
-//   .state = 'c'};
-#pragma PERSISTENT(dataStore)
-extern char dataStore[1000];
-//memset(dataStored, 0, sizeof(dataStored));
-
-#pragma PERSISTENT(store)
-extern char store;
 
  /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -91,7 +74,7 @@ extern char message[];
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 #define SIZE_ID 8
-#define NODE_NUMBER 11
+#define NODE_NUMBER 0x00
 #define DATA_SIZE 40
 #define CRC_SEED  0xBEEF
 
@@ -103,11 +86,15 @@ void setBoardFrequency();
 void pinDeclaration();
 void UARTInit();
 void UART_TXData();
+void UART_TXDataTOBOARD(unsigned char);
+
+void producedData(char*);
 
 
 
-int FRAMWrite(char*); //Function to write on FRAM
-void dataSend(char*);
+int FRAMWriteTX(char*); //Function to write on FRAM
+int FRAMWriteRX(char*, int); //Function to write on FRAM
+void dataSend();
 int dataToSend();
 char* stringToBinary(char*);
 char* intToBinary(int, int);
@@ -116,6 +103,29 @@ void parseData();
 void setID();
 void setData();
 void setCRC();
+int FRAMReadSenderRX();
+char* FRAMReadDataRX(int);
+void FRAMInit();
+
+//struct storedData;
+//struct storedData;
+typedef struct storedData
+{
+    unsigned char nodeNumber;
+    unsigned char data0;
+    unsigned char data1;
+    unsigned char data2;
+    unsigned char data3;
+    unsigned char CRC0;
+    unsigned char CRC1;
+    unsigned char timeStamp;
+    unsigned char saved;
+} storedData;
+
+unsigned int canGetData();
+struct storedData getdata();
+
+
 
 
 
