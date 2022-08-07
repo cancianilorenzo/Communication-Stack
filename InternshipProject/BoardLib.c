@@ -3,14 +3,15 @@
 #include "driverlib.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 unsigned int currentReceived = 0;
 
-/*FOR DEBUG*/
-#include <stdio.h>
-
+//Uart message
 char message[MSG_SIZE];
 
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+//FRAM VARIABLE INITIALIZATION
 #pragma PERSISTENT(writePointer)
 unsigned char writePointer = 0x00;
 
@@ -31,32 +32,15 @@ storedData storedTX[FRAM_TX_NUMBER] = { 0x00 };
 
 #pragma PERSISTENT(storedRX)
 storedData storedRX[FRAM_RX_NUMBER] = { 0x00 };
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 int dataStatus = DATA_WAIT;
-
 
 //Energy simulation
 int energyLevel = 0;
 int energy_count = 0;
 int energy_count_limit = 0;
 int energy_increment = 0;
-
-void initBoard()
-{
-    //MPU initialization, useful if operations couldbe risky --> not in CCS, already managed
-    /* MPUCTL0 = MPUPW;
-     MPUSEGB2 = 0x1000; // memory address 0x10000
-     MPUSEGB1 = 0x0fc0; // memory address 0x0fc00
-     MPUSAM &= ~MPUSEG2WE; // disallow writes
-     MPUSAM |= MPUSEG2VS;  // reset CPU on violation
-     MPUCTL0 = MPUPW | MPUENA;
-     MPUCTL0_H = 0;*/
-
-    WDTCTL = WDTPW | WDTHOLD;
-    PM5CTL0 &= ~LOCKLPM5; // Disable the GPIO power-on default high-impedance mode
-    __enable_interrupt(); // enable global interrupts
-
-}
 
 void UARTInit()
 {
@@ -122,171 +106,21 @@ void setBoardFrequency()
 
 void pinDeclaration()
 {
-    //RX
-    GPIO_setAsInputPinWithPullUpResistor(DATA_RX_PORT, DATA_RX_PIN);
-    GPIO_selectInterruptEdge(DATA_RX_PORT, DATA_RX_PIN,
-    GPIO_LOW_TO_HIGH_TRANSITION);
-    GPIO_clearInterrupt(DATA_RX_PORT, DATA_RX_PIN);
-    GPIO_enableInterrupt(DATA_RX_PORT, DATA_RX_PIN);
 
-    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P5, GPIO_PIN5);
-    GPIO_selectInterruptEdge(GPIO_PORT_P5, GPIO_PIN5,
-    GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN5);
-    GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN5);
-
+//    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P5, GPIO_PIN5);
+//    GPIO_selectInterruptEdge(GPIO_PORT_P5, GPIO_PIN5,
+//    GPIO_HIGH_TO_LOW_TRANSITION);
+//    GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN5);
+//    GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN5);
+//
     GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P5, GPIO_PIN6);
     GPIO_selectInterruptEdge(GPIO_PORT_P5, GPIO_PIN6,
     GPIO_HIGH_TO_LOW_TRANSITION);
     GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN6);
     GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN6);
-
-    //TX
-    GPIO_setAsOutputPin(DATA_TX_PORT, DATA_TX_PIN);
-//    GPIO_setAsOutputPin(GPIO_PORT_P6, GPIO_PIN0);
-//    GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN0);
 }
 
-void UART_TXData(char *c, size_t size)
-{
-    //Can't find sysTick like on MSP432 so this is a possible approach
-    int position;
-    int i;
-    for (position = 0; position < size; position++)
-    {
-        UCA0TXBUF = c[position];
-        for (i = 0; i < 5000; i++)
-            ;
-    }
-}
-
-void UART_TXDataTOBOARD(unsigned char c)
-{
-    sprintf(message, "DUB ");
-    UART_TXData(message, strlen(message));
-    unsigned int j;
-    UCA1TXBUF = (unsigned char) c;
-    for (j = 0; j < 30000; j++)
-        ;
-
-}
-
-void startEnergyTimer(int value)
-{
-    TA0CCR0 = value;
-}
-
-void startEnergySimulation()
-{
-    startEnergyTimer(ENERGY_UPDATE_RATE);
-    energy_count_limit = (ENERGY_CHANGE / 2)
-            + (rand() % (ENERGY_CHANGE / 2 + 1));
-    energy_increment = rand() % (ENERGY_INCREMENT + 1);
-}
-
-#pragma vector = TIMER0_A0_VECTOR
-__interrupt void interruptEnergy(void)
-{
-
-//    sprintf(message, "DSI %d ", dataStatus);
-//    UART_TXData(message, strlen(message));
-
-    if (dataStatus == DATA_WAIT)
-    {
-        int energy_step = rand() % (energy_increment + 1);
-        energyLevel = energyLevel + energy_step;
-        if (energyLevel >= MAX_ENERGY)
-            energyLevel = MAX_ENERGY;
-        energy_count++;
-
-        energy_step = 120 + energy_step / 20;
-
-        if (energy_count >= energy_count_limit)
-        {
-            energy_count_limit = (ENERGY_CHANGE / 2)
-                    + (rand() % (ENERGY_CHANGE / 2 + 1));
-            energy_increment = rand() % (ENERGY_INCREMENT + 1);
-            energy_count = 0;
-
-        }
-//        sprintf(message, "UE ");
-//        UART_TXData(message, strlen(message));
-    }
-}
-/////////////////////////////////
-//
-unsigned char valoreletto = 0x00;
-#pragma vector = PORT5_VECTOR
-__interrupt void P5_ISR(void)
-{
-// Data RX ISR
-//    if (P3IFG & BIT0)
-    if (GPIO_getInterruptStatus(GPIO_PORT_P5, GPIO_PIN5))
-
-    {
-
-        if (((energyLevel == ENERGY_CONSUMED_RX)
-                || (energyLevel > ENERGY_CONSUMED_RX))
-        /*&& dataStatus == DATA_WAIT*/)
-        {
-            dataStatus = DATA_RX;
-            TA0CCR0 = 0;
-            TA0CCR0 = 250;
-
-        }
-        else
-        {
-            sprintf(message, "ER30 "); //Error data reception
-            UART_TXData(message, strlen(message));
-        }
-
-//        P3IFG &= ~BIT0;
-        GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN5);
-
-    }
-
-    if (GPIO_getInterruptStatus(GPIO_PORT_P5, GPIO_PIN6))
-    {
-//        if (valoreletto == FRAM_TX_NUMBER)
-//        {
-//            valoreletto = 0x00;
-//        }
-//        sprintf(message, "DATA %x ", storedTX[valoreletto].CRC0TX);
-//        UART_TXData(message, strlen(message));
-//
-//        valoreletto = valoreletto + 0x01;
-        dataSend();
-        GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN6);
-
-    }
-}
-
-////FUNCTION TO SEND DATA
-void dataSend()
-{
-    if (sendPointer == FRAM_TX_NUMBER)
-    {
-        sendPointer = 0x00;
-    }
-    if (storedTX[sendPointer].saved == 0xFF)
-    {
-        sprintf(message, "SEND ");
-        UART_TXData(message, strlen(message));
-        UART_TXDataTOBOARD(storedTX[sendPointer].nodeNumber);
-        UART_TXDataTOBOARD(storedTX[sendPointer].data0);
-        UART_TXDataTOBOARD(storedTX[sendPointer].data1);
-        UART_TXDataTOBOARD(storedTX[sendPointer].data2);
-        UART_TXDataTOBOARD(storedTX[sendPointer].data3);
-        UART_TXDataTOBOARD(storedTX[sendPointer].CRC0);
-        UART_TXDataTOBOARD(storedTX[sendPointer].CRC1);
-        UART_TXDataTOBOARD(storedTX[sendPointer].timeStamp);
-        storedTX[sendPointer].saved = 0x00;
-        sendPointer = sendPointer + 0x01;
-    }
-
-}
-
-//FUNCTION TO INIT FRAM, CONSENT TO ALLOCATE ALL DATA IN FRAM
+//FUNCTION TO ALLOCATE ALL DATA IN FRAM
 void FRAMInit()
 {
     if (initialized == 0x00)
@@ -329,108 +163,269 @@ void FRAMInit()
     }
 }
 
-void checkRXData()
+void startEnergySimulation()
 {
-//    sprintf(message, "-0%d", (int) nodeNumberRX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "-1%x", (unsigned char) data0RX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "-2%x", (unsigned char) data1RX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "-3%x", (unsigned char) data2RX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "-4%x", (unsigned char) data3RX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "-5%x", (unsigned char) CRC0RX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "-6%x", (unsigned char) CRC1RX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "-7%x", (unsigned char) timeStampRX);
-//    UART_TXData(message, strlen(message));
-//    RXPointer
-    if (RXPointer >= FRAM_RX_NUMBER)
-    {
-        RXPointer = 0x00;
-    }
-    unsigned char data0RX = storedRX[RXPointer].data0;
-    unsigned char data1RX = storedRX[RXPointer].data1;
-    unsigned char data2RX = storedRX[RXPointer].data2;
-    unsigned char data3RX = storedRX[RXPointer].data3;
-
-    data0RX &= BIT_MASK_0;
-    data1RX &= BIT_MASK_1;
-    data2RX &= BIT_MASK_2;
-    data3RX &= BIT_MASK_3;
-
-    data0RX |= data1RX;
-    data2RX |= data3RX;
-
-    data0RX &= data2RX;
-
-    CRC_setSeed(CRC_BASE, CRC_SEED);
-    CRC_set16BitData(CRC_BASE, data0RX);
-    unsigned int CRCResult = CRC_getResult(CRC_BASE);
-
-    unsigned char CRC0 = CRCResult >> 8;
-    unsigned char CRC1 = CRCResult;
-
-    if ((CRC0 == storedRX[RXPointer].CRC0) && (CRC1 == storedRX[RXPointer].CRC1))
-    {
-        sprintf(message, "Can Store!");
-        UART_TXData(message, strlen(message));
-        storedRX[RXPointer].saved = 0xFF;
-        RXPointer = RXPointer + 0x01;
-
-    }
-
-    currentReceived = 0;
+    TA0CCR0 = ENERGY_UPDATE_RATE;
+    energy_count_limit = (ENERGY_CHANGE / 2)
+            + (rand() % (ENERGY_CHANGE / 2 + 1));
+    energy_increment = rand() % (ENERGY_INCREMENT + 1);
 }
 
-#pragma vector = EUSCI_A1_VECTOR
-__interrupt void UARTA1(void)
+void initBoard()
 {
-    sprintf(message, "ISR ");
-    UART_TXData(message, strlen(message));
-    switch (currentReceived)
+    WDTCTL = WDTPW | WDTHOLD;
+    PM5CTL0 &= ~LOCKLPM5; // Disable the GPIO power-on default high-impedance mode
+    __enable_interrupt(); // enable global interrupts
+
+    pinDeclaration();
+    setBoardFrequency();
+    UARTInit();
+    setTimers();
+    startEnergySimulation();
+    FRAMInit();
+
+}
+
+void UART_TXData(char *c, size_t size)
+{
+    //Can't find sysTick like on MSP432 so this is a possible approach
+    int position;
+    int i;
+    for (position = 0; position < size; position++)
     {
-    case 0:
-        storedRX[RXPointer].nodeNumber = UCA1RXBUF;
-        break;
-    case 1:
-        storedRX[RXPointer].data0 = UCA1RXBUF;
-        break;
-    case 2:
-        storedRX[RXPointer].data1 = UCA1RXBUF;
-        break;
-    case 3:
-        storedRX[RXPointer].data2 = UCA1RXBUF;
-        break;
-    case 4:
-        storedRX[RXPointer].data3 = UCA1RXBUF;
-        break;
-    case 5:
-        storedRX[RXPointer].CRC0 = UCA1RXBUF;
-        break;
-    case 6:
-        storedRX[RXPointer].CRC1 = UCA1RXBUF;
-        break;
-    case 7:
-        storedRX[RXPointer].timeStamp = UCA1RXBUF;
-        break;
-    default:
-        break;
+        UCA0TXBUF = c[position];
+        for (i = 0; i < 5000; i++)
+            ;
     }
-    currentReceived++;
+}
+
+void UART_TXDataTOBOARD(unsigned char c)
+{
+//    sprintf(message, "DUB ");
+//    UART_TXData(message, strlen(message));
+    unsigned int j;
+    UCA1TXBUF = (unsigned char) c;
+    for (j = 0; j < 30000; j++)
+        ;
+
+}
+
+void checkRXData()
+{
+
     if (currentReceived == 8)
     {
+        sprintf(message, "REC ");
+        UART_TXData(message, strlen(message));
+
+        if (RXPointer >= (unsigned char) FRAM_RX_NUMBER)
+        {
+            RXPointer = 0x00;
+        }
+
+//        sprintf(message, "--%x", storedRX[RXPointer].nodeNumber);
+//        UART_TXData(message, strlen(message));
+//        sprintf(message, "%x", storedRX[RXPointer].data0);
+//        UART_TXData(message, strlen(message));
+//        sprintf(message, "%x", storedRX[RXPointer].data1);
+//        UART_TXData(message, strlen(message));
+//        sprintf(message, "%x", storedRX[RXPointer].data2);
+//        UART_TXData(message, strlen(message));
+//        sprintf(message, "%x", storedRX[RXPointer].data3);
+//        UART_TXData(message, strlen(message));
+//        sprintf(message, "%x", storedRX[RXPointer].CRC0);
+//        UART_TXData(message, strlen(message));
+//        sprintf(message, "%x", storedRX[RXPointer].CRC1);
+//        UART_TXData(message, strlen(message));
+//        sprintf(message, "%x--", storedRX[RXPointer].timeStamp);
+//        UART_TXData(message, strlen(message));
+
+        unsigned char data0RX = storedRX[RXPointer].data0;
+        unsigned char data1RX = storedRX[RXPointer].data1;
+        unsigned char data2RX = storedRX[RXPointer].data2;
+        unsigned char data3RX = storedRX[RXPointer].data3;
+
+        data0RX &= BIT_MASK_0;
+        data1RX &= BIT_MASK_1;
+        data2RX &= BIT_MASK_2;
+        data3RX &= BIT_MASK_3;
+
+        data0RX |= data1RX;
+        data2RX |= data3RX;
+
+        data0RX &= data2RX;
+
+        CRC_setSeed(CRC_BASE, CRC_SEED);
+        CRC_set16BitData(CRC_BASE, data0RX);
+        unsigned int CRCResult = CRC_getResult(CRC_BASE);
+
+        unsigned char CRC0 = CRCResult >> 8;
+        unsigned char CRC1 = CRCResult;
+
+        if ((CRC0 == storedRX[RXPointer].CRC0)
+                && (CRC1 == storedRX[RXPointer].CRC1))
+        {
+            storedRX[RXPointer].saved = 0xFF;
+            RXPointer = RXPointer + 0x01;
+
+        }
+
+        currentReceived = 0;
+    }
+    else
+    {
+        sprintf(message, "RECERR ");
+        UART_TXData(message, strlen(message));
+//        producedData("111110011111001111111111111100111");
+        currentReceived = 0;
+    }
+    dataStatus = DATA_WAIT;
+    energyLevel = energyLevel - ENERGY_CONSUMED_RX;
+
+}
+
+#pragma vector = TIMER0_A0_VECTOR
+__interrupt void interruptEnergy(void)
+{
+
+//    sprintf(message, "DSI %d ", dataStatus);
+//    UART_TXData(message, strlen(message));
+
+    if (dataStatus == DATA_WAIT)
+    {
+        int energy_step = rand() % (energy_increment + 1);
+        energyLevel = energyLevel + energy_step;
+        if (energyLevel >= MAX_ENERGY)
+            energyLevel = MAX_ENERGY;
+        energy_count++;
+
+        energy_step = 120 + energy_step / 20;
+
+        if (energy_count >= energy_count_limit)
+        {
+            energy_count_limit = (ENERGY_CHANGE / 2)
+                    + (rand() % (ENERGY_CHANGE / 2 + 1));
+            energy_increment = rand() % (ENERGY_INCREMENT + 1);
+            energy_count = 0;
+
+        }
+//        sprintf(message, "UE ");
+//        UART_TXData(message, strlen(message));
+    }
+
+    if (dataStatus == DATA_RX)
+    {
+        TA0CCR0 = 0;
         checkRXData();
+        dataStatus = DATA_WAIT;
+        TA0CCR0 = ENERGY_UPDATE_RATE;
+
+    }
+
+}
+
+/////////////////////////////////
+#pragma vector = PORT5_VECTOR
+__interrupt void P5_ISR(void)
+{
+
+    if (GPIO_getInterruptStatus(GPIO_PORT_P5, GPIO_PIN6))
+    {
+        producedData("111110011111001111111111111100111");
+        GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN6);
+
+    }
+}
+/////////////////////////////////
+
+////FUNCTION TO SEND DATA
+void dataSend()
+{
+    if (dataStatus != DATA_RX)
+    {
+        if (sendPointer == FRAM_TX_NUMBER)
+        {
+            sendPointer = 0x00;
+        }
+        if (storedTX[sendPointer].saved == 0xFF)
+        {
+            sprintf(message, "SEND ");
+            dataStatus = DATA_TX;
+            UART_TXData(message, strlen(message));
+            UART_TXDataTOBOARD(storedTX[sendPointer].nodeNumber);
+            UART_TXDataTOBOARD(storedTX[sendPointer].data0);
+            UART_TXDataTOBOARD(storedTX[sendPointer].data1);
+            UART_TXDataTOBOARD(storedTX[sendPointer].data2);
+            UART_TXDataTOBOARD(storedTX[sendPointer].data3);
+            UART_TXDataTOBOARD(storedTX[sendPointer].CRC0);
+            UART_TXDataTOBOARD(storedTX[sendPointer].CRC1);
+            UART_TXDataTOBOARD(storedTX[sendPointer].timeStamp);
+            storedTX[sendPointer].saved = 0x00;
+            energyLevel = energyLevel - ENERGY_CONSUMED_TX;
+            sendPointer = sendPointer + 0x01;
+            dataStatus = DATA_WAIT;
+        }
+    }
+
+}
+
+#pragma vector = USCI_A1_VECTOR //IS EUSCI BUT USCI WORKS ANYWAY FOR COMPATIBILITY WITH OLD BOARDS
+__interrupt void UARTA1(void)
+{
+
+    if (((energyLevel == ENERGY_CONSUMED_RX)
+            || (energyLevel > ENERGY_CONSUMED_RX)) && dataStatus != DATA_TX)
+    {
+//        sprintf(message, "ISR ");
+//        UART_TXData(message, strlen(message));
+        dataStatus = DATA_RX;
+        TA0CCR0 = 0;
+
+        switch (currentReceived)
+        {
+        case 0:
+            storedRX[RXPointer].nodeNumber = UCA1RXBUF;
+            break;
+        case 1:
+            storedRX[RXPointer].data0 = UCA1RXBUF;
+            break;
+        case 2:
+            storedRX[RXPointer].data1 = UCA1RXBUF;
+            break;
+        case 3:
+            storedRX[RXPointer].data2 = UCA1RXBUF;
+            break;
+        case 4:
+            storedRX[RXPointer].data3 = UCA1RXBUF;
+            break;
+        case 5:
+            storedRX[RXPointer].CRC0 = UCA1RXBUF;
+            break;
+        case 6:
+            storedRX[RXPointer].CRC1 = UCA1RXBUF;
+            break;
+        case 7:
+            storedRX[RXPointer].timeStamp = UCA1RXBUF;
+            break;
+        default:
+            break;
+        }
+        currentReceived++;
+
+        TA0CCR0 = 250;
+    }
+    else
+    {
+//        sprintf(message, "ERDR "); //Error data reception
+//        UART_TXData(message, strlen(message));
+
     }
 
 }
 
 void producedData(char *data)
 {
-    //simulate a circular buffer, old data will be overwrite after FRAM_TX_NUMBER writes (suppose to be too old)
+//simulate a circular buffer, old data will be overwrite after FRAM_TX_NUMBER writes (suppose to be too old)
     if (writePointer >= FRAM_TX_NUMBER)
     {
         writePointer = 0x00;
@@ -448,14 +443,6 @@ void producedData(char *data)
     data2[8] = '\0';
     strncpy((char*) data3, (char*) (data + 24), 8);
     data3[8] = '\0';
-//    sprintf(message, "CPY %s ", data0);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "CPY %s ", data1);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "CPY %s ", data2);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "CPY %s ", data3);
-//    UART_TXData(message, strlen(message));
 
     unsigned char data0TX = strtol((char*) data0, NULL, 2);
     unsigned char data1TX = strtol((char*) data1, NULL, 2);
@@ -480,8 +467,8 @@ void producedData(char *data)
     CRC_set16BitData(CRC_BASE, data0TX);
     unsigned int CRCResult = CRC_getResult(CRC_BASE);
 
-    sprintf(message, "CRCR %x", CRCResult);
-    UART_TXData(message, strlen(message));
+//    sprintf(message, "CRCR %x", CRCResult);
+//    UART_TXData(message, strlen(message));
 
     storedTX[writePointer].CRC0 = CRCResult >> 8;
     storedTX[writePointer].CRC1 = CRCResult;
@@ -489,20 +476,10 @@ void producedData(char *data)
     storedTX[writePointer].saved = 0xFF;
 
     writePointer = writePointer + 0x01;
-
-//    sprintf(message, "HEX %x ", data0TX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "HEX %x ", data1TX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "HEX %x ", data2TX);
-//    UART_TXData(message, strlen(message));
-//    sprintf(message, "HEX %x ", data3TX);
-//    UART_TXData(message, strlen(message));
-
 }
 
-
-unsigned int canGetData(){
+unsigned int canGetData()
+{
     if (readPointer >= FRAM_RX_NUMBER)
     {
         readPointer = 0x00;
@@ -510,14 +487,16 @@ unsigned int canGetData(){
 
     unsigned int res = 0;
 
-    if(storedRX[readPointer].saved == 0xFF){
+    if (storedRX[readPointer].saved == 0xFF)
+    {
         res = 1;
     }
     return res;
 
 }
 
-struct storedData getdata(){
+struct storedData getdata()
+{
     storedData res = storedRX[readPointer];
     storedRX[readPointer].saved = 0x00;
     readPointer = readPointer + 0x01;

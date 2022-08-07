@@ -5,7 +5,7 @@
 
 /*-------------------------------------------------------------EDIT THE FREQUENCY ARRAY----------------------------------------------------------------------------*/
 //ARRAY TO STORE FREQUENCY OF NODES, STORE IN ASCENDING ORDER
-int OOK_NODE_INCOME[NODES] = {10, 35};
+int OOK_NODE_INCOME[NODES] = {10, 30};
 //EXAMPLE OF ARRAY
 //int OOK_NODE_INCOME[NODES] = {10, 15, 20, 25, 30, 35, 40, 45, 50};
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
@@ -23,6 +23,13 @@ char debugUART[64];
 int burstDebug = 0;
 #endif
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+
+//-------------RIMUOVI
+char debugUART[64];
+#include <string.h>
+#include <stdio.h>
+int burstDebug = 0;
+//-----------------
 
 int nodeState[NODES];
 int nodeStatus = 0;
@@ -119,6 +126,16 @@ __interrupt void interruptBurstRepetition(void)
             burstDebug = 0;
         }
 #endif
+
+        //------------------
+        burstDebug++;
+        if (burstDebug == 100)
+        {
+            sprintf(debugUART, "BT ");
+            UART_TXData(debugUART, strlen(debugUART));
+            burstDebug = 0;
+        }
+        //---------------
 
     }
 }

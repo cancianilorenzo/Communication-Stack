@@ -11,31 +11,31 @@ int main(void)
 {
 
     initBoard();
-    pinDeclaration();
-    setBoardFrequency();
-    UARTInit();
-    setTimers();
-    startEnergySimulation();
-    FRAMInit();
+    sprintf(message, "INIT0 ");
+    UART_TXData(message, strlen(message));
 
     TRAPGPIO();
     TRAPTimer();
 
-    unsigned char primo = 0x02;
-    unsigned char secondo = 0x09;
-    sprintf(message, "ret %d ", primo < secondo);
-    UART_TXData(message, strlen(message));
 
-    producedData("10100100111110011001111111110010");
-    producedData("111110011111001111111111111100111");
+    sprintf(message, "DP ");
+    UART_TXData(message, strlen(message));
 
     while (1)
     {
+
+        if (canSendTRAP(1))
+        {
+            dataSend();
+            resetTRAP(1);
+        }
+
         if (canGetData())
         {
             storedData data = getdata();
-            sprintf(message, "SDG %x ", data.saved);
+            sprintf(message, "POP %x ", data.data0);
             UART_TXData(message, strlen(message));
+
         }
     }
 
