@@ -11,15 +11,11 @@ int main(void)
 {
 
     initBoard();
-    sprintf(message, "INIT0 ");
+    sprintf(message, "INIT1 ");
     UART_TXData(message, strlen(message));
 
     TRAPGPIO();
     TRAPTimer();
-
-
-    sprintf(message, "DP ");
-    UART_TXData(message, strlen(message));
 
     while (1)
     {
@@ -33,8 +29,9 @@ int main(void)
         if (canGetData())
         {
             storedData data = getdata();
-            sprintf(message, "POP %x ", data.data0);
-            UART_TXData(message, strlen(message));
+//            sprintf(message, "POP %x ", data.data0);
+//            UART_TXData(message, strlen(message));
+            producedData("111110011111001111111111111100111");
 
         }
     }
