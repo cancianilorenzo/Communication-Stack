@@ -1,10 +1,5 @@
-#ifndef BOARDLIB_H_
-#define BOARDLIB_H_
-
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-/*BOARD INITIALIZATION FUNCTION*/
-void initBoard();
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
+#ifndef COMMUNICATION_COMMUNICATIONLAYER_H_
+#define COMMUNICATION_COMMUNICATIONLAYER_H_
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /*Node status to know exactly in which state is the board for DATA side*/
@@ -13,28 +8,6 @@ extern int dataStatus;
 #define DATA_TX             1
 #define DATA_RX             2
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-/*Energy simulation params, can be remove in real world application*/
-extern int energyLevel;
-
-#define ENERGY_CHANGE       50      // energy variation parameter
-#define ENERGY_INCREMENT    5       // energy maximum increment
-#define MAX_ENERGY          100     //MAx energy that can be stored in a node
-
-#define ENERGY_CONSUMED_TX 70 //Energy consumed in TX
-#define ENERGY_CONSUMED_RX 35 //Energy consumed in RX
-
-#define ENERGY_UPDATE_RATE 125
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-/*UART DATA*/
-#define MSG_SIZE 64 //Uart MSG size
-extern char message[];
-void UART_TXData(); //UART TO PC
-void UART_TXDataTOBOARD(unsigned char); //UART TO NODES
-        /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /*FRAM UTILITIES*/
@@ -58,7 +31,7 @@ typedef struct storedData
 
 unsigned int canGetData(); //CHECK IF THERE IS DATA STORED CORRECTLY IN FRAM (RX SIDE)
 struct storedData getdata(); //POP DATA OUT OF FRAM AND RETURN A STRUCT OF storedData
-void producedData(char*); //STORE char* DATA IN FRAM (TX SIDE)
+void producedData(unsigned char, unsigned char, unsigned char, unsigned char); //STORE char* DATA IN FRAM (TX SIDE)
 void dataSend(); //SEND STORED DATA TO OTHER NODES
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -72,11 +45,16 @@ void dataSend(); //SEND STORED DATA TO OTHER NODES
 #define CRC_SEED  0xBEEF
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
-void pinDeclaration();
-void setBoardFrequency();
-void UARTInit();
 void setTimers();
-void startEnergySimulation();
 void FRAMInit();
 
+extern unsigned char writePointer;
+extern unsigned int currentReceived;
+extern unsigned char RXPointer;
+extern storedData storedRX[FRAM_RX_NUMBER];
+
+void startCommunicationLayer();
+
+
 #endif
+

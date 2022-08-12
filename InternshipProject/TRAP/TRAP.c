@@ -1,16 +1,16 @@
+#include "Board\Board.h"
 #include "TRAP.h"
-#include "BoardLib.h"
-#include <msp430.h>
+#include "Communication/CommunicationLayer.h"
+#include "msp430.h"
 #include "driverlib.h"
+#include "stdlib.h"
 
 /*-------------------------------------------------------------EDIT THE FREQUENCY ARRAY----------------------------------------------------------------------------*/
 //ARRAY TO STORE FREQUENCY OF NODES, STORE IN ASCENDING ORDER
-int OOK_NODE_INCOME[NODES] = {10, 30};
+int OOK_NODE_INCOME[NODES] = { 10, 30 };
 //EXAMPLE OF ARRAY
 //int OOK_NODE_INCOME[NODES] = {10, 15, 20, 25, 30, 35, 40, 45, 50};
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
-
 
 /*----------------------------------------------------FROM HERE EDIT ONLY IF NEEDED-------------------------------------------------------------------*/
 
@@ -22,30 +22,22 @@ char debugUART[64];
 #include <stdio.h>
 int burstDebug = 0;
 #endif
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
-//-------------RIMUOVI
-char debugUART[64];
-#include <string.h>
-#include <stdio.h>
-int burstDebug = 0;
-//-----------------
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 int nodeState[NODES];
 int nodeStatus = 0;
 
-#ifndef BOARDLIB_H_
+#ifndef COMMUNICATION_COMMUNICATIONLAYER_H_
 #define DATA_WAIT           0
 #define DATA_TX             1
 #define DATA_RX             2
 int dataStatus = DATA_WAIT;
 #endif
 
-
 #define NODE_IDENTIFICATION_DIVIDER ID_0
 #define NODE_IDENTIFICATION_SPEED 1000
-
-
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //TIMER DECLARATION
@@ -104,12 +96,63 @@ float frequency = 0; //Frequency calcolated from TimerA2
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
-//INTERRUPT FOR BURST_REPETITION TIMER
+//INTERRUPT FOR BURST_REPETITION TIMER + ENERGY SIMULATION
 int sendPulses;
+//int burst = 0;
+
+int energyUp = 0;
+
+//Energy simulation
+int energyLevel = 0;
+int energy_count = 0;
+int energy_count_limit = 0;
+int energy_increment = 0;
+
+void startEnergySimulation()
+{
+    //TA0CCR0 = ENERGY_UPDATE_RATE;
+    energy_count_limit = (ENERGY_CHANGE / 2)
+            + (rand() % (ENERGY_CHANGE / 2 + 1));
+    energy_increment = rand() % (ENERGY_INCREMENT + 1);
+}
+
 #pragma vector = BURST_REPETITION
 __interrupt void interruptBurstRepetition(void)
 {
-    if (dataStatus != DATA_TX)
+//ENERGY SIMULATION
+    if (dataStatus == DATA_WAIT)
+    {
+        int energy_step = rand() % (energy_increment + 1);
+        energyLevel = energyLevel + energy_step;
+        if (energyLevel >= MAX_ENERGY)
+            energyLevel = MAX_ENERGY;
+        energy_count++;
+
+        energy_step = 200 + energy_step / 10;
+
+        if (energy_count >= energy_count_limit)
+        {
+            energy_count_limit = (ENERGY_CHANGE / 2)
+                    + (rand() % (ENERGY_CHANGE / 2 + 1));
+            energy_increment = rand() % (ENERGY_INCREMENT + 1);
+            energy_count = 0;
+
+        }
+//        sprintf(message, "E %d ", energyLevel);
+//        UART_TXData(message, strlen(message));
+        energyUp = energyUp + 1;
+        if (energyUp == 100)
+        {
+            sprintf(message, "UE ");
+            UART_TXData(message, strlen(message));
+            energyUp = 0;
+        }
+        //burst = 1;
+
+    }
+
+    //BURST SENDING
+    if (dataStatus != DATA_TX /*&& burst == 1*/)
     {
         selectBurstLengthTRAP(energyLevel);
         TB0CCR0 = 0; //Stop timer B0
@@ -118,24 +161,15 @@ __interrupt void interruptBurstRepetition(void)
         GPIO_setOutputLowOnPin(BURST_TX_PORT, BURST_TX_PIN);
         TB0CCR0 = (1000 / (OOK_NODE * 2));
 #ifdef DEBUG
-        burstDebug++;
-        if (burstDebug == 100)
-        {
-            sprintf(debugUART, "BT ");
-            UART_TXData(debugUART, strlen(debugUART));
-            burstDebug = 0;
-        }
-#endif
-
-        //------------------
-        burstDebug++;
-        if (burstDebug == 100)
-        {
-            sprintf(debugUART, "BT ");
-            UART_TXData(debugUART, strlen(debugUART));
-            burstDebug = 0;
-        }
-        //---------------
+               burstDebug++;
+               if (burstDebug == 100)
+               {
+                   sprintf(debugUART, "BT ");
+                   UART_TXData(debugUART, strlen(debugUART));
+                   burstDebug = 0;
+               }
+       #endif
+        //burst = 0;
 
     }
 }
@@ -216,9 +250,10 @@ __interrupt void frequencyAllocation(void)
 
     if (count > (64 - BURST_GUARD))
     {
-        frequency = ((float) NODE_IDENTIFICATION_SPEED * (float) (count+1)) / ((float) timerValue);
+        frequency = ((float) NODE_IDENTIFICATION_SPEED * (float) (count + 1))
+                / ((float) timerValue);
 #ifdef DEBUG
-        sprintf(debugUART, "F %.6f ", frequency);
+        sprintf(debugUART, "F %d ", (int)frequency);
         UART_TXData(debugUART, strlen(debugUART));
 #endif
 
@@ -297,22 +332,30 @@ void TRAPGPIO()
 //    P1IFG = 0;              // clear interrupt flags
 //    P1IE = BIT4;  // set interupt enable on pins
 
+    startEnergySimulation();
+
     GPIO_setAsInputPinWithPullUpResistor(BURST_RX_PORT, BURST_RX_PIN);
     GPIO_selectInterruptEdge(BURST_RX_PORT, BURST_RX_PIN,
-                             GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_HIGH_TO_LOW_TRANSITION);
     GPIO_clearInterrupt(BURST_RX_PORT, BURST_RX_PIN);
     GPIO_enableInterrupt(BURST_RX_PORT, BURST_RX_PIN);
 
     GPIO_setAsOutputPin(BURST_TX_PORT, BURST_TX_PIN); //Pin real Burst send
-
 
 }
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 //FUNCTION TO RESET NODE BURST VALUE AFTER SENDING
-void resetTRAP(int nodeNumber){
+void resetTRAP(int nodeNumber)
+{
     nodeState[nodeNumber] = 0;
     burstValue = 0;
 }
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+
+void startTRAPLayer(){
+    TRAPGPIO();
+    TRAPTimer();
+}
+

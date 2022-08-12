@@ -1,8 +1,23 @@
 #ifndef TRAP_H_
 #define TRAP_H_
 
-//#define DEBUG 0
+#define DEBUG 0
 #define NODES 2
+
+
+
+extern int energyLevel;
+/*Energy simulation params, can be remove in real world application*/
+//extern int energyLevel;
+
+#define ENERGY_CHANGE       70      // energy variation parameter
+#define ENERGY_INCREMENT    5       // energy maximum increment
+#define MAX_ENERGY          100     //MAx energy that can be stored in a node
+
+#define ENERGY_CONSUMED_TX 70 //Energy consumed in TX
+#define ENERGY_CONSUMED_RX 35 //Energy consumed in RX
+
+//#define ENERGY_UPDATE_RATE 125
 
 
 /************ ON/OFF KEY MODULATION FREQUENCY IN khz ***********/
@@ -107,6 +122,8 @@ void selectBurstLengthTRAP(int);
 int canSendTRAP(int);
 void TRAPGPIO();
 void resetTRAP(int);
+
+void startTRAPLayer();
 
 #endif
 

@@ -1,4 +1,10 @@
 eclipse.preferences.version=1
+encoding//Debug/Board/subdir_rules.mk=UTF-8
+encoding//Debug/Board/subdir_vars.mk=UTF-8
+encoding//Debug/Communication/subdir_rules.mk=UTF-8
+encoding//Debug/Communication/subdir_vars.mk=UTF-8
+encoding//Debug/Physical/subdir_rules.mk=UTF-8
+encoding//Debug/Physical/subdir_vars.mk=UTF-8
 encoding//Debug/TRAP/subdir_rules.mk=UTF-8
 encoding//Debug/TRAP/subdir_vars.mk=UTF-8
 encoding//Debug/driverlib/MSP430FR5xx_6xx/subdir_rules.mk=UTF-8

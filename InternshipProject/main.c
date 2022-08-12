@@ -1,21 +1,28 @@
 //MSP430FR5994
-#include <msp430.h>
-#include "driverlib.h"
-#include <TRAP\TRAP.h>
-#include <BoardLib.h>
-#include <stdlib.h>
+#include "Board/Board.h"
+#include "TRAP\TRAP.h"
+#include "Communication/CommunicationLayer.h"
+#include "Physical/Physicallayer.h"
 #include <stdio.h>
 #include <string.h>
 
+
+/*
+          Code to simulate a RESET
+          TA0R = 0x3FFF;
+        ((void (*)())(unsigned int)&TA0R)();
+*/
+
+
 int main(void)
 {
-
     initBoard();
-    sprintf(message, "INIT1 ");
-    UART_TXData(message, strlen(message));
+    startPhysicalLayer();
+    startCommunicationLayer();
+    startTRAPLayer();
 
-    TRAPGPIO();
-    TRAPTimer();
+    sprintf(message, "INIT0 ");
+    UART_TXData(message, strlen(message));
 
     while (1)
     {
@@ -29,9 +36,17 @@ int main(void)
         if (canGetData())
         {
             storedData data = getdata();
-//            sprintf(message, "POP %x ", data.data0);
-//            UART_TXData(message, strlen(message));
-            producedData("111110011111001111111111111100111");
+            sprintf(message, "D: %x ", data.data0);
+            UART_TXData(message, strlen(message));
+            if(data.data0 == 0xab){
+                producedData(0xf9, 0xf3, 0xff, 0xf3);
+            }
+            else{
+                producedData(0xab, 0xf3, 0xff, 0xf3);
+            }
+            //producedData(data.data0, data.data1, data.data2, data.data3);
+//            producedData(0xab, 0xf3, 0xff, 0xf3);
+//            producedData(0xf9, 0xf3, 0xff, 0xf3);
 
         }
     }
