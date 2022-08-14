@@ -4,6 +4,8 @@
 #include "msp430.h"
 #include "driverlib.h"
 #include "stdlib.h"
+#include "stdio.h"
+#include "string.h"
 
 /*-------------------------------------------------------------EDIT THE FREQUENCY ARRAY----------------------------------------------------------------------------*/
 //ARRAY TO STORE FREQUENCY OF NODES, STORE IN ASCENDING ORDER
@@ -51,7 +53,7 @@ void TRAPTimer()
 
     //TIMEOUT BURST RECEPTION
     BURST_TIMEOUT_CCCR = CCIE;
-    BURST_TIMEOUT_CR = TASSEL_1 + MC_1 + ID_3; // Use SMCLK in up mode, /8 divider
+    BURST_TIMEOUT_CR = TASSEL_1 + MC_1 + ID_3; // Use ACLK in up mode, /8 divider
     BURST_TIMEOUT_EV = 0;
     BURST_TIMEOUT_CCCR &= 0x10;
 

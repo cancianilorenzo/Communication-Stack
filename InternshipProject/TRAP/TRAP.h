@@ -1,7 +1,7 @@
 #ifndef TRAP_H_
 #define TRAP_H_
 
-#define DEBUG 0
+//#define DEBUG 0
 #define NODES 2
 
 
