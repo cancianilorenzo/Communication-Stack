@@ -6,14 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
-/*
-          Code to simulate a RESET
-          TA0R = 0x3FFF;
-        ((void (*)())(unsigned int)&TA0R)();
-*/
-
-
 int main(void)
 {
     initBoard();
@@ -21,34 +13,17 @@ int main(void)
     startCommunicationLayer();
     startTRAPLayer();
 
-    sprintf(message, "INIT0 ");
-    UART_TXData(message, strlen(message));
-
     while (1)
     {
+        //4bytes data, latest byte destination node
+        producedData(0xab, 0x12, 0x23, 0x67, 0x00);
 
-        if (canSendTRAP(1))
-        {
-            dataSend();
-            resetTRAP(1);
-        }
+        //Send data
+        dataSend();
 
-        if (canGetData())
-        {
-            storedData data = getdata();
-            sprintf(message, "D: %x ", data.data0);
-            UART_TXData(message, strlen(message));
-            if(data.data0 == 0xab){
-                producedData(0xf9, 0xf3, 0xff, 0xf3);
-            }
-            else{
-                producedData(0xab, 0xf3, 0xff, 0xf3);
-            }
-            //producedData(data.data0, data.data1, data.data2, data.data3);
-//            producedData(0xab, 0xf3, 0xff, 0xf3);
-//            producedData(0xf9, 0xf3, 0xff, 0xf3);
+        //Retrive received data
+        storedData data = getdata();
 
-        }
     }
 
 }

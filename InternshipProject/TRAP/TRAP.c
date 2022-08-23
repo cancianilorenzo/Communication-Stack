@@ -16,18 +16,6 @@ int OOK_NODE_INCOME[NODES] = { 10, 30 };
 
 /*----------------------------------------------------FROM HERE EDIT ONLY IF NEEDED-------------------------------------------------------------------*/
 
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-//Auxiliary stuff for debug
-#ifdef DEBUG
-char debugUART[64];
-#include <string.h>
-#include <stdio.h>
-int burstDebug = 0;
-#endif
-
-
-/*-----------------------------------------------------------------------------------------------------------------------------------------*/
-
 int nodeState[NODES];
 int nodeStatus = 0;
 
@@ -76,7 +64,7 @@ void TRAPTimer()
 int burstValue = 0; //Pulses to send
 void selectBurstLengthTRAP(int energyLevel)
 {
-    if (energyLevel == MAX_ENERGY)
+    if (energyLevel > HIGH_ENERGY || energyLevel == HIGH_ENERGY)
     {
         burstValue = LONG_BURST;
     }
@@ -118,6 +106,7 @@ void startEnergySimulation()
     energy_increment = rand() % (ENERGY_INCREMENT + 1);
 }
 
+
 #pragma vector = BURST_REPETITION
 __interrupt void interruptBurstRepetition(void)
 {
@@ -140,8 +129,7 @@ __interrupt void interruptBurstRepetition(void)
             energy_count = 0;
 
         }
-//        sprintf(message, "E %d ", energyLevel);
-//        UART_TXData(message, strlen(message));
+
         energyUp = energyUp + 1;
         if (energyUp == 100)
         {
@@ -149,12 +137,11 @@ __interrupt void interruptBurstRepetition(void)
             UART_TXData(message, strlen(message));
             energyUp = 0;
         }
-        //burst = 1;
 
     }
 
     //BURST SENDING
-    if (dataStatus != DATA_TX /*&& burst == 1*/)
+    if (dataStatus != DATA_TX)
     {
         selectBurstLengthTRAP(energyLevel);
         TB0CCR0 = 0; //Stop timer B0
@@ -162,16 +149,6 @@ __interrupt void interruptBurstRepetition(void)
         nodeStatus = BURST_TX;
         GPIO_setOutputLowOnPin(BURST_TX_PORT, BURST_TX_PIN);
         TB0CCR0 = (1000 / (OOK_NODE * 2));
-#ifdef DEBUG
-               burstDebug++;
-               if (burstDebug == 100)
-               {
-                   sprintf(debugUART, "BT ");
-                   UART_TXData(debugUART, strlen(debugUART));
-                   burstDebug = 0;
-               }
-       #endif
-        //burst = 0;
 
     }
 }
@@ -204,13 +181,8 @@ __interrupt void interruptPulsesSending(void)
 __interrupt void interruptBurstRX(void)
 {
 //Burst RX ISR
-//    if (P1IFG & BIT4)
     if (GPIO_getInterruptStatus(BURST_RX_PORT, BURST_RX_PIN))
     {
-//#ifdef DEBUG
-//        sprintf(debugUART, "BURSTREC ");
-//        UART_TXData(debugUART, strlen(debugUART));
-//#endif
 
         if ((nodeStatus != BURST_TX) && (dataStatus == DATA_WAIT))
         {
@@ -230,7 +202,6 @@ __interrupt void interruptBurstRX(void)
             }
         }
 
-//        P1IFG &= ~BIT4;
         GPIO_clearInterrupt(BURST_RX_PORT, BURST_RX_PIN);
 
     }
@@ -245,19 +216,11 @@ __interrupt void frequencyAllocation(void)
 {
     BURST_TIMEOUT_CR = TASSEL_1 + MC_0 + ID_3; //Stop timer
     NODE_ID_CR = TASSEL_2 + MC_0 + ID_0; //Stop timer
-#ifdef DEBUG
-    sprintf(debugUART, "C: %d ", count);
-    UART_TXData(debugUART, strlen(debugUART));
-#endif
 
     if (count > (64 - BURST_GUARD))
     {
         frequency = ((float) NODE_IDENTIFICATION_SPEED * (float) (count + 1))
                 / ((float) timerValue);
-#ifdef DEBUG
-        sprintf(debugUART, "F %d ", (int)frequency);
-        UART_TXData(debugUART, strlen(debugUART));
-#endif
 
         int i;
         for (i = 0; i < NODES; i++)
@@ -276,10 +239,6 @@ __interrupt void frequencyAllocation(void)
                 {
                     nodeState[i] = SHORT_BURST;
                 }
-#ifdef DEBUG
-                sprintf(debugUART, "NODE%d %d --", i, nodeState[i]);
-                UART_TXData(debugUART, strlen(debugUART));
-#endif
                 break;
 
             }
@@ -312,12 +271,14 @@ int canSendTRAP(int choosenNode)
 {
 
     int canSend = 0;
-
-    if (burstValue == LONG_BURST
-            && (nodeState[choosenNode] == MIDDLE_BURST
-                    || nodeState[choosenNode] == LONG_BURST))
+    if (choosenNode < NODES)
     {
-        canSend = 1;
+        if (burstValue == LONG_BURST
+                && (nodeState[choosenNode] == MIDDLE_BURST
+                        || nodeState[choosenNode] == LONG_BURST))
+        {
+            canSend = 1;
+        }
     }
 
     return canSend;
@@ -329,10 +290,6 @@ int canSendTRAP(int choosenNode)
 //FUNCTION TO INITIALIZE GPIO FOR TRAP, GPIO DEFINED IN TRAP.H FILE
 void TRAPGPIO()
 {
-//    BURST RX
-//    P1IES = BIT4;  // pull-up
-//    P1IFG = 0;              // clear interrupt flags
-//    P1IE = BIT4;  // set interupt enable on pins
 
     startEnergySimulation();
 
@@ -356,7 +313,8 @@ void resetTRAP(int nodeNumber)
 }
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
-void startTRAPLayer(){
+void startTRAPLayer()
+{
     TRAPGPIO();
     TRAPTimer();
 }

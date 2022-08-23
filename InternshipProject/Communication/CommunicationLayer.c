@@ -12,7 +12,6 @@
 unsigned int currentReceived = 0;
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
-//FRAM VARIABLE INITIALIZATION
 #pragma PERSISTENT(writePointer)
 unsigned char writePointer = 0x00;
 
@@ -37,10 +36,9 @@ storedData storedRX[FRAM_RX_NUMBER] = { 0x00 };
 
 int dataStatus = DATA_WAIT;
 
-
 void setTimers()
 {
-    //Timer A0_0 ---- ENERGY UPDATE + DATA RX ----
+    //Timer A0_0 ---- DATA RX ----
     TA0CCTL0 = CCIE; // enable capture control interupt
     TA0CTL = TASSEL_1 + MC_1 + ID_0; // Use ACLK in up mode, /1 divider --> 250Hz
     TA0CCR0 = 0; // set interupt value
@@ -53,10 +51,7 @@ void FRAMInit()
 {
     if (initialized == 0x00)
     {
-        sprintf(message, "INIT-FRAM ");
-        UART_TXData(message, strlen(message));
 
-        //se prima inizializzazione
         writePointer = 0x00;
         sendPointer = 0x00;
         RXPointer = 0x00;
@@ -73,6 +68,7 @@ void FRAMInit()
             storedTX[i].CRC0 = 0x00;
             storedTX[i].CRC1 = 0x00;
             storedTX[i].timeStamp = 0x00;
+            storedTX[i].nodeRX = 0x00;
             storedTX[i].saved = 0x00;
         }
         for (i = 0; i <= FRAM_RX_NUMBER; i++)
@@ -87,12 +83,12 @@ void FRAMInit()
             storedRX[i].timeStamp = 0x00;
             storedRX[i].saved = 0x00;
         }
-        producedData(0xab, 0xf3, 0xff, 0xf3);
         initialized = 0xFF;
     }
 }
 
-void startCommunicationLayer(){
+void startCommunicationLayer()
+{
     setTimers();
     FRAMInit();
 }
@@ -107,7 +103,6 @@ void checkRXData()
         {
             RXPointer = 0x00;
         }
-
 
         unsigned char data0RX = storedRX[RXPointer].data0;
         unsigned char data1RX = storedRX[RXPointer].data1;
@@ -145,10 +140,9 @@ void checkRXData()
     }
     else
     {
-        sprintf(message, "RECERR ");
-        UART_TXData(message, strlen(message));
         currentReceived = 0;
     }
+    TA0CCR0 = 250;
     dataStatus = DATA_WAIT;
     energyLevel = energyLevel - ENERGY_CONSUMED_RX;
 
@@ -167,21 +161,6 @@ __interrupt void interruptEnergy(void)
 
 }
 
-/////////////////////////////////
-//#pragma vector = PORT5_VECTOR
-//__interrupt void P5_ISR(void)
-//{
-//
-//    if (GPIO_getInterruptStatus(GPIO_PORT_P5, GPIO_PIN6))
-//    {
-//        //producedData("111110011111001111111111111100111");
-//        GPIO_clearInterrupt(GPIO_PORT_P5, GPIO_PIN6);
-//
-//    }
-//}
-/////////////////////////////////
-
-////FUNCTION TO SEND DATA
 void dataSend()
 {
     if (dataStatus != DATA_RX)
@@ -190,36 +169,99 @@ void dataSend()
         {
             sendPointer = 0x00;
         }
-        if (storedTX[sendPointer].saved == 0xFF)
+
+        int toSend = -1;
+        if (storedTX[sendPointer].saved == 0xFF
+                && (canSendTRAP(storedTX[sendPointer].nodeRX)))
+        {
+            toSend = sendPointer;
+        }
+        else
+        {
+            unsigned int i;
+            for (i = sendPointer; i < FRAM_TX_NUMBER; i++)
+            {
+                if (storedTX[i].saved == 0xFF)
+                {
+                    if (canSendTRAP(storedTX[i].nodeRX))
+                    {
+                        toSend = i;
+                        break;
+                    }
+                }
+
+            }
+
+            if (toSend == -1)
+            {
+                for (i = 0; i < sendPointer; i++)
+                {
+                    if (storedTX[i].saved == 0xFF)
+                    {
+                        if (canSendTRAP(storedTX[i].nodeRX))
+                        {
+                            toSend = i;
+                            break;
+                        }
+                    }
+
+                }
+
+            }
+        }
+
+        if (toSend != -1)
         {
             dataStatus = DATA_TX;
-            UART_TXDataTOBOARD(storedTX[sendPointer].nodeNumber);
-            UART_TXDataTOBOARD(storedTX[sendPointer].data0);
-            UART_TXDataTOBOARD(storedTX[sendPointer].data1);
-            UART_TXDataTOBOARD(storedTX[sendPointer].data2);
-            UART_TXDataTOBOARD(storedTX[sendPointer].data3);
-            UART_TXDataTOBOARD(storedTX[sendPointer].CRC0);
-            UART_TXDataTOBOARD(storedTX[sendPointer].CRC1);
-            UART_TXDataTOBOARD(storedTX[sendPointer].timeStamp);
-            storedTX[sendPointer].saved = 0x00;
-            sprintf(message, "--SEND %x-- ",storedTX[sendPointer].data0 ,sendPointer);
-            UART_TXData(message, strlen(message));
-            energyLevel = energyLevel - ENERGY_CONSUMED_TX;
-            sendPointer = sendPointer + 0x01;
+            unsigned int timeValue = rand() % 5;
+
+            if (timeValue > storedTX[toSend].timeStamp)
+            {
+                storedTX[toSend].saved = 0x00;
+                if (toSend == sendPointer)
+                {
+                    sendPointer = sendPointer + 0x01;
+                }
+            }
+            else
+            {
+                if (canSendTRAP(storedTX[toSend].nodeRX))
+                {
+                    UART_TXDataTOBOARD(storedTX[toSend].nodeNumber);
+                    UART_TXDataTOBOARD(storedTX[toSend].data0);
+                    UART_TXDataTOBOARD(storedTX[toSend].data1);
+                    UART_TXDataTOBOARD(storedTX[toSend].data2);
+                    UART_TXDataTOBOARD(storedTX[toSend].data3);
+                    UART_TXDataTOBOARD(storedTX[toSend].CRC0);
+                    UART_TXDataTOBOARD(storedTX[toSend].CRC1);
+                    UART_TXDataTOBOARD(storedTX[toSend].timeStamp);
+                    storedTX[toSend].saved = 0x00;
+                    sprintf(message, "SEND ");
+                    UART_TXData(message, strlen(message));
+                    energyLevel = energyLevel - ENERGY_CONSUMED_TX;
+                }
+
+                resetTRAP(storedTX[toSend].nodeRX);
+                if (toSend == sendPointer)
+                {
+                    sendPointer = sendPointer + 0x01;
+                }
+            }
+
             dataStatus = DATA_WAIT;
         }
+        toSend = -1;
     }
-
 }
-
 void producedData(unsigned char data0, unsigned char data1, unsigned char data2,
-                  unsigned char data3)
+                  unsigned char data3, unsigned char nodeRX)
 {
 //simulate a circular buffer, old data will be overwrite after FRAM_TX_NUMBER writes (suppose to be too old)
     if (writePointer == FRAM_TX_NUMBER)
     {
         writePointer = 0x00;
     }
+    storedTX[writePointer].nodeNumber = NODE_NUMBER;
     storedTX[writePointer].data0 = data0;
     storedTX[writePointer].data1 = data1;
     storedTX[writePointer].data2 = data2;
@@ -239,15 +281,15 @@ void producedData(unsigned char data0, unsigned char data1, unsigned char data2,
     CRC_set16BitData(CRC_BASE, data0);
     unsigned int CRCResult = CRC_getResult(CRC_BASE);
 
-//    sprintf(message, "CRCR %x", CRCResult);
-//    UART_TXData(message, strlen(message));
-
     storedTX[writePointer].CRC0 = CRCResult >> 8;
     storedTX[writePointer].CRC1 = CRCResult;
-    storedTX[writePointer].timeStamp = 0x4D;
+    storedTX[writePointer].timeStamp = 0x03;
+    storedTX[writePointer].nodeRX = nodeRX;
+
     storedTX[writePointer].saved = 0xFF;
 
     writePointer = writePointer + 0x01;
+    energyLevel = energyLevel - ENERGY_CONSUMED_DP;
 }
 
 unsigned int canGetData()
@@ -256,6 +298,54 @@ unsigned int canGetData()
     {
         readPointer = 0x00;
     }
+
+    //Clear all exipred packets
+    unsigned int i;
+    unsigned int timeValue = rand() % 5;
+    for (i = 0; i < FRAM_RX_NUMBER; i++)
+    {
+        if (timeValue > storedTX[i].timeStamp)
+        {
+            storedRX[i].saved = 0x00;
+        }
+    }
+
+    //set readPointer
+
+    int toGet = -1;
+    if (storedRX[readPointer].saved == 0xFF)
+    {
+        toGet = readPointer;
+    }
+    else
+    {
+        unsigned int i;
+        for (i = readPointer; i < FRAM_RX_NUMBER; i++)
+        {
+
+            if (storedTX[i].saved == 0xFF)
+            {
+                toGet = i;
+                break;
+            }
+
+        }
+
+        if (toGet == -1)
+        {
+            for (i = 0; i < readPointer; i++)
+            {
+                if (storedRX[i].saved == 0xFF)
+                {
+                    toGet = i;
+                    break;
+                }
+
+            }
+
+        }
+    }
+    readPointer = toGet;
 
     unsigned int res = 0;
 
@@ -269,10 +359,14 @@ unsigned int canGetData()
 
 struct storedData getdata()
 {
-    //producedData("111110011111001111111111111100111");
-    storedData res = storedRX[readPointer];
-    storedRX[readPointer].saved = 0x00;
-    readPointer = readPointer + 0x01;
+    storedData res = { 0x00 };
+    if (canGetData())
+    {
+        res = storedRX[readPointer];
+        storedRX[readPointer].saved = 0x00;
+        readPointer = readPointer + 0x01;
+    }
+
     return res;
 
 }

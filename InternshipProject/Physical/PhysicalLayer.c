@@ -5,15 +5,15 @@
 #include <stdio.h>
 #include <string.h>
 
+unsigned char flush;
+
 #pragma vector = USCI_A1_VECTOR //IS EUSCI BUT USCI WORKS ANYWAY FOR COMPATIBILITY WITH OLD BOARDS
 __interrupt void UART_RXDataTOBOARD(void)
 {
 
-    if (((energyLevel == ENERGY_CONSUMED_RX)
-            || (energyLevel > ENERGY_CONSUMED_RX)) && dataStatus != DATA_TX)
+    if (((energyLevel == MIDDLE_ENERGY)
+            || (energyLevel > MIDDLE_ENERGY)) && dataStatus != DATA_TX)
     {
-//        sprintf(message, "ISR ");
-//        UART_TXData(message, strlen(message));
         dataStatus = DATA_RX;
         TA0CCR0 = 0;
         TA0CCR0 = 250;
@@ -49,16 +49,10 @@ __interrupt void UART_RXDataTOBOARD(void)
         }
         currentReceived++;
 
+    }else{
+        flush = UCA1RXBUF; //To flush UART RX buffer
     }
-    else
-    {
-        sprintf(message, "ERDR "); //Error data reception
-        UART_TXData(message, strlen(message));
-
-    }
-
 }
-
 
 void UART_TXDataTOBOARD(unsigned char c)
 {
@@ -69,8 +63,8 @@ void UART_TXDataTOBOARD(unsigned char c)
 
 }
 
-
-void startPhysicalLayer(){
+void startPhysicalLayer()
+{
     //FOR DATA SENDING BETWEEN BOARDS
     P2SEL0 &= ~(BIT5 | BIT6);
     P2SEL1 |= (BIT5 | BIT6);                           // USCI_A3 UART operation

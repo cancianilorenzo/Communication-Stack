@@ -27,11 +27,12 @@ typedef struct storedData
     unsigned char CRC1;
     unsigned char timeStamp;
     unsigned char saved;
+    unsigned char nodeRX;
 } storedData;
 
 unsigned int canGetData(); //CHECK IF THERE IS DATA STORED CORRECTLY IN FRAM (RX SIDE)
 struct storedData getdata(); //POP DATA OUT OF FRAM AND RETURN A STRUCT OF storedData
-void producedData(unsigned char, unsigned char, unsigned char, unsigned char); //STORE char* DATA IN FRAM (TX SIDE)
+void producedData(unsigned char, unsigned char, unsigned char, unsigned char, unsigned char); //STORE char* DATA IN FRAM (TX SIDE)
 void dataSend(); //SEND STORED DATA TO OTHER NODES
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 

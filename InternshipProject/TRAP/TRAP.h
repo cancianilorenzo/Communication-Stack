@@ -1,14 +1,12 @@
 #ifndef TRAP_H_
 #define TRAP_H_
 
-//#define DEBUG 0
 #define NODES 2
 
 
 
 extern int energyLevel;
 /*Energy simulation params, can be remove in real world application*/
-//extern int energyLevel;
 
 #define ENERGY_CHANGE       70      // energy variation parameter
 #define ENERGY_INCREMENT    5       // energy maximum increment
@@ -16,8 +14,7 @@ extern int energyLevel;
 
 #define ENERGY_CONSUMED_TX 70 //Energy consumed in TX
 #define ENERGY_CONSUMED_RX 35 //Energy consumed in RX
-
-//#define ENERGY_UPDATE_RATE 125
+#define ENERGY_CONSUMED_DP 30 //Energy consumed for data production
 
 
 /************ ON/OFF KEY MODULATION FREQUENCY IN khz ***********/
@@ -60,9 +57,6 @@ extern int OOK_NODE_INCOME[NODES];
 #define BURST_REPETITION_EV TA1CCR0
 
 //VALUE FOR BURST REPETITION
-//FOR CLOCK AT 8MHZ
-//#define BURST_REPETITION_PERIOD 500 //For repeat the burst every 1 second
-//FOR CLOCK AT 16MHZ
 #define BURST_REPETITION_PERIOD 250 //For repeat the burst every 1 second
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -97,12 +91,13 @@ extern int nodeStatus;
 /************ ENERGY AND BURST PARAMS ***********/
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 #define MAX_ENERGY 100
-#define MIDDLE_ENERGY 70
-#define LOW_ENERGY 35
+#define HIGH_ENERGY 70
+#define MIDDLE_ENERGY 35
+#define LOW_ENERGY 1
 #define LONG_BURST 256
 #define MIDDLE_BURST 128
 #define SHORT_BURST 64
-#define BURST_GUARD 40 //Burst Guard
+#define BURST_GUARD 40
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
 /************ TIMEOUT BURST FOR RX ***********/
