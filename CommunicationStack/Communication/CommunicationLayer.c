@@ -142,7 +142,7 @@ void checkRXData()
     {
         currentReceived = 0;
     }
-    TA0CCR0 = 250;
+    TA0CCR0 = 0;
     dataStatus = DATA_WAIT;
     energyLevel = energyLevel - ENERGY_CONSUMED_RX;
 
@@ -179,15 +179,13 @@ void dataSend()
         else
         {
             unsigned int i;
-            for (i = sendPointer; i < FRAM_TX_NUMBER; i++)
+            for (i = sendPointer + 1; i < FRAM_TX_NUMBER; i++)
             {
-                if (storedTX[i].saved == 0xFF)
+                if (storedTX[i].saved == 0xFF
+                        && canSendTRAP(storedTX[i].nodeRX))
                 {
-                    if (canSendTRAP(storedTX[i].nodeRX))
-                    {
-                        toSend = i;
-                        break;
-                    }
+                    toSend = i;
+                    break;
                 }
 
             }
@@ -196,13 +194,11 @@ void dataSend()
             {
                 for (i = 0; i < sendPointer; i++)
                 {
-                    if (storedTX[i].saved == 0xFF)
+                    if (storedTX[i].saved == 0xFF
+                            && canSendTRAP(storedTX[i].nodeRX))
                     {
-                        if (canSendTRAP(storedTX[i].nodeRX))
-                        {
-                            toSend = i;
-                            break;
-                        }
+                        toSend = i;
+                        break;
                     }
 
                 }
