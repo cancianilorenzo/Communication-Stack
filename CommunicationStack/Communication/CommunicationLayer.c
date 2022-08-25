@@ -294,6 +294,7 @@ unsigned int canGetData()
     {
         readPointer = 0x00;
     }
+    unsigned int res = 0;
 
     //Clear all exipred packets
     unsigned int i;
@@ -312,6 +313,7 @@ unsigned int canGetData()
     if (storedRX[readPointer].saved == 0xFF)
     {
         toGet = readPointer;
+        res = 1;
     }
     else
     {
@@ -322,6 +324,7 @@ unsigned int canGetData()
             if (storedTX[i].saved == 0xFF)
             {
                 toGet = i;
+                res = 1;
                 break;
             }
 
@@ -334,6 +337,7 @@ unsigned int canGetData()
                 if (storedRX[i].saved == 0xFF)
                 {
                     toGet = i;
+                    res = 1;
                     break;
                 }
 
@@ -343,14 +347,7 @@ unsigned int canGetData()
     }
     readPointer = toGet;
 
-    unsigned int res = 0;
-
-    if (storedRX[readPointer].saved == 0xFF)
-    {
-        res = 1;
-    }
     return res;
-
 }
 
 struct storedData getdata()
