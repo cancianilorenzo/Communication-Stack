@@ -12,13 +12,6 @@
 
 ---
 
-
-## Repo Structure
-- `MSP430 materials`: useful documentation and datsheets to learn more about the target system
-- `CommunicationStack`: communication stack presented
-
----
-
 ## Goal Description
 The use of battery-free systems is a revolutionary frontier for the Internet of Things; in
 fact, it allows network nodes to be unconstrained by the use of batteries.
